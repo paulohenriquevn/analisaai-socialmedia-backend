@@ -28,3 +28,7 @@ def init_extensions(app):
     
     # Configure OAuth
     oauth.init_app(app)
+    
+    # Configure OAuth clients
+    from app.services.oauth_service import config_oauth
+    config_oauth(app)

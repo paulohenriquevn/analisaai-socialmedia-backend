@@ -2,14 +2,20 @@
 OAuth service for social media platform integrations.
 """
 import requests
+import logging
 from datetime import datetime, timedelta
 from flask import current_app
 from app.extensions import oauth
 
+logger = logging.getLogger(__name__)
+
 def config_oauth(app):
     """Configure OAuth clients for various social media platforms."""
+    logger.info("Configuring OAuth clients...")
+    
     # Instagram OAuth configuration
     if 'INSTAGRAM_CLIENT_ID' in app.config and app.config['INSTAGRAM_CLIENT_ID']:
+        logger.info("Registering Instagram OAuth client")
         oauth.register(
             name='instagram',
             client_id=app.config['INSTAGRAM_CLIENT_ID'],
@@ -22,9 +28,12 @@ def config_oauth(app):
             redirect_uri=app.config['INSTAGRAM_REDIRECT_URI'],
             client_kwargs={'scope': 'user_profile,user_media'},
         )
+    else:
+        logger.warning("Instagram OAuth client not configured - missing credentials")
     
     # Facebook OAuth configuration
     if 'FACEBOOK_CLIENT_ID' in app.config and app.config['FACEBOOK_CLIENT_ID']:
+        logger.info(f"Registering Facebook OAuth client with ID: {app.config['FACEBOOK_CLIENT_ID'][:5]}...")
         oauth.register(
             name='facebook',
             client_id=app.config['FACEBOOK_CLIENT_ID'],
@@ -37,9 +46,12 @@ def config_oauth(app):
             redirect_uri=app.config['FACEBOOK_REDIRECT_URI'],
             client_kwargs={'scope': 'pages_read_engagement,instagram_basic,instagram_manage_insights'},
         )
+    else:
+        logger.warning("Facebook OAuth client not configured - missing credentials")
     
     # TikTok OAuth configuration
     if 'TIKTOK_CLIENT_ID' in app.config and app.config['TIKTOK_CLIENT_ID']:
+        logger.info("Registering TikTok OAuth client")
         oauth.register(
             name='tiktok',
             client_id=app.config['TIKTOK_CLIENT_ID'],
@@ -52,6 +64,11 @@ def config_oauth(app):
             redirect_uri=app.config['TIKTOK_REDIRECT_URI'],
             client_kwargs={'scope': 'user.info.basic,video.list'},
         )
+    else:
+        logger.warning("TikTok OAuth client not configured - missing credentials")
+        
+    # Log registered clients
+    logger.info(f"Registered OAuth clients: {list(oauth._registry.keys())}")
 
 
 def save_token(user_id, platform, token_data):

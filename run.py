@@ -2,7 +2,11 @@
 Application entry point for Analisa.ai Social Media.
 """
 import os
+from dotenv import load_dotenv
 from app import create_app
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Create app instance using environment configuration
 app = create_app(os.getenv('FLASK_ENV', 'development'))

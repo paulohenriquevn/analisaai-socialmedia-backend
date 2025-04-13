@@ -28,6 +28,14 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
+    # Social media IDs
+    facebook_id = db.Column(db.String(100), unique=True, nullable=True)
+    instagram_id = db.Column(db.String(100), unique=True, nullable=True)
+    tiktok_id = db.Column(db.String(100), unique=True, nullable=True)
+    
+    # Profile information
+    profile_image = db.Column(db.String(500), nullable=True)
+    
     # Relationships
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('users', lazy='dynamic'))
     social_tokens = db.relationship('SocialToken', backref='user', lazy='dynamic')
