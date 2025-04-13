@@ -456,30 +456,106 @@ def facebook_callback():
 def instagram_auth():
     """Initiate Instagram OAuth flow."""
     user_id = get_jwt_identity()
-    # Store state for later verification
+    logger.info(f"Starting Instagram OAuth flow for user {user_id}")
+    
+    # Clear any previous session data and store user ID
+    session.clear()
     session['user_id'] = user_id
+    session['oauth_state'] = str(uuid.uuid4())
+    
+    # Generate the redirect URI
     redirect_uri = url_for('api.auth.instagram_callback', _external=True)
-    return oauth.instagram.authorize_redirect(redirect_uri)
+    logger.info(f"Instagram OAuth redirect URI: {redirect_uri}")
+    
+    try:
+        # Check if Instagram client is registered
+        if 'instagram' not in oauth._registry:
+            logger.error("Instagram OAuth client is not registered in the OAuth registry")
+            available_clients = list(oauth._registry.keys())
+            logger.error(f"Available OAuth clients: {available_clients}")
+            return jsonify({
+                "error": "Instagram OAuth not configured",
+                "details": "The Instagram OAuth client is not registered. Check environment variables.",
+                "available_clients": available_clients
+            }), 500
+        
+        # Redirect to Facebook for Instagram authentication
+        return oauth.instagram.authorize_redirect(redirect_uri)
+    except Exception as e:
+        # Handle any errors
+        logger.error(f"Error starting Instagram OAuth flow: {str(e)}")
+        return jsonify({
+            "error": "Failed to start Instagram authentication",
+            "details": str(e)
+        }), 500
 
 
 @bp.route('/instagram/callback')
 def instagram_callback():
     """Handle Instagram OAuth callback."""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Invalid session"}), 401
-    
-    # Get token from Instagram
-    token = oauth.instagram.authorize_access_token()
-    if not token:
-        return jsonify({"error": "Failed to get token"}), 400
-    
-    # Save token to database
-    save_token(user_id, 'instagram', token)
-    
-    # Redirect to frontend with success message
-    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
-    return redirect(f"{frontend_url}/settings/connected-accounts?status=success&platform=instagram")
+    try:
+        # Check for error parameter from Facebook
+        if 'error' in request.args:
+            error = request.args.get('error')
+            error_description = request.args.get('error_description', 'Unknown error')
+            logger.error(f"Instagram OAuth error: {error} - {error_description}")
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
+            return redirect(f"{frontend_url}/settings/connected-accounts?error=instagram_auth_error&message={error_description}")
+        
+        # Get user ID from session
+        user_id = session.get('user_id')
+        if not user_id:
+            logger.error("No user ID found in session for Instagram callback")
+            return jsonify({"error": "Invalid session. Please try again."}), 401
+        
+        # Get token from Instagram/Facebook
+        logger.info("Attempting to get Instagram access token...")
+        token = oauth.instagram.authorize_access_token()
+        if not token:
+            logger.error("Failed to get Instagram access token")
+            return jsonify({"error": "Failed to get Instagram access token"}), 400
+        
+        logger.info(f"Successfully obtained Instagram access token")
+        
+        # Save token to database
+        save_token(user_id, 'instagram', token)
+        logger.info(f"Saved Instagram token for user {user_id}")
+        
+        # Check if the account is a business/creator account
+        try:
+            # Get Instagram account information to verify it's a business account
+            from app.services.social_media_service import SocialMediaService
+            profile_data = SocialMediaService.fetch_instagram_profile(user_id)
+            
+            if profile_data:
+                logger.info(f"Successfully retrieved Instagram profile for user {user_id}: {profile_data['username']}")
+                
+                # Store profile data for immediate access
+                SocialMediaService.save_influencer_data(profile_data)
+                logger.info(f"Saved Instagram profile data for user {user_id}")
+            else:
+                logger.warning(f"Could not verify Instagram business account status for user {user_id}")
+                # We continue anyway since the token was obtained
+        except Exception as e:
+            logger.error(f"Error checking Instagram account type: {str(e)}")
+            # Continue despite error, as we have the access token
+        
+        # Redirect to frontend with success message
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
+        return redirect(f"{frontend_url}/settings/connected-accounts?status=success&platform=instagram")
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"Instagram callback error: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        # Try to provide a more user-friendly error
+        error_message = str(e)
+        if "No such client: instagram" in error_message:
+            error_message = "Instagram OAuth client is not configured"
+        
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
+        return redirect(f"{frontend_url}/settings/connected-accounts?error=instagram_auth_error&message={error_message}")
 
 
 # Complete profile after social login

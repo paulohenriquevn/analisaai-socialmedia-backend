@@ -26,114 +26,196 @@ class SocialMediaService:
         Returns:
             dict: Instagram profile data or None if error
         """
+        logger.info(f"Fetching Instagram profile for user_id={user_id}, username={username}")
         token_data = get_token(user_id, 'instagram')
         if not token_data:
             logger.error(f"No Instagram token found for user {user_id}")
             return None
         
         access_token = token_data['access_token']
+        logger.info(f"Using Instagram access token for user {user_id}")
         
-        # First get the user ID if username is provided
-        if username:
-            try:
-                # Search for the username
-                search_url = f"https://graph.instagram.com/v18.0/ig_username_search"
-                params = {
-                    'q': username,
-                    'access_token': access_token
-                }
-                response = requests.get(search_url, params=params)
-                response.raise_for_status()
-                
-                data = response.json()
-                if 'data' not in data or len(data['data']) == 0:
-                    logger.error(f"Instagram user {username} not found")
-                    return None
-                
-                instagram_user_id = data['data'][0]['id']
-            except Exception as e:
-                logger.error(f"Error searching Instagram user {username}: {str(e)}")
-                return None
-        else:
-            # Get the user's own profile
-            try:
-                self_url = f"https://graph.instagram.com/v18.0/me"
-                params = {
-                    'fields': 'id,username',
-                    'access_token': access_token
-                }
-                response = requests.get(self_url, params=params)
-                response.raise_for_status()
-                
-                data = response.json()
-                instagram_user_id = data['id']
-                username = data['username']
-            except Exception as e:
-                logger.error(f"Error getting Instagram self profile: {str(e)}")
-                return None
-        
-        # Now get the user profile data
+        # First we need to get all connected Instagram accounts through the Facebook Graph API
         try:
-            profile_url = f"https://graph.instagram.com/v18.0/{instagram_user_id}"
+            # The correct approach is to first get the Facebook pages that the user has access to
+            accounts_url = "https://graph.facebook.com/v16.0/me/accounts"
             params = {
-                'fields': 'id,username,biography,profile_picture_url,follows_count,followed_by_count,media_count',
-                'access_token': access_token
+                'access_token': access_token,
+                'fields': 'instagram_business_account,name,id'
             }
-            response = requests.get(profile_url, params=params)
+            logger.info(f"Requesting Facebook Pages with Instagram Business accounts")
+            response = requests.get(accounts_url, params=params)
             response.raise_for_status()
             
-            profile_data = response.json()
+            accounts_data = response.json()
+            logger.info(f"Found {len(accounts_data.get('data', []))} Facebook Pages")
             
-            # Get recent media to calculate engagement
-            media_url = f"https://graph.instagram.com/v18.0/{instagram_user_id}/media"
+            # Filter to find pages with Instagram business accounts
+            instagram_accounts = []
+            for page in accounts_data.get('data', []):
+                if 'instagram_business_account' in page:
+                    instagram_accounts.append({
+                        'page_id': page['id'],
+                        'page_name': page['name'],
+                        'instagram_business_account_id': page['instagram_business_account']['id']
+                    })
+            
+            if not instagram_accounts:
+                logger.warning(f"No Instagram Business accounts found for user {user_id}")
+                return {
+                    'error': 'no_business_account',
+                    'message': 'No Instagram Business accounts found. Please make sure your Instagram account is connected to a Facebook Page and is set as a Business or Creator account.'
+                }
+            
+            logger.info(f"Found {len(instagram_accounts)} Instagram Business accounts")
+            
+            # Now get data for the Instagram account
+            # If username is specified, find that specific account
+            instagram_account = None
+            if username:
+                # Find the specific account with this username
+                for account in instagram_accounts:
+                    ig_id = account['instagram_business_account_id']
+                    ig_url = f"https://graph.facebook.com/v16.0/{ig_id}"
+                    params = {
+                        'fields': 'username',
+                        'access_token': access_token
+                    }
+                    ig_response = requests.get(ig_url, params=params)
+                    ig_response.raise_for_status()
+                    ig_data = ig_response.json()
+                    
+                    if ig_data.get('username') == username:
+                        instagram_account = account
+                        instagram_user_id = ig_id
+                        break
+                
+                if not instagram_account:
+                    logger.error(f"Instagram account with username {username} not found")
+                    return None
+            else:
+                # Just use the first account
+                instagram_account = instagram_accounts[0]
+                instagram_user_id = instagram_account['instagram_business_account_id']
+                logger.info(f"Using first Instagram account: {instagram_user_id}")
+            
+            # Now get detailed profile data
+            profile_url = f"https://graph.facebook.com/v16.0/{instagram_user_id}"
+            params = {
+                'fields': 'id,username,name,biography,profile_picture_url,follows_count,followers_count,media_count,website',
+                'access_token': access_token
+            }
+            profile_response = requests.get(profile_url, params=params)
+            profile_response.raise_for_status()
+            
+            profile_data = profile_response.json()
+            logger.info(f"Got profile data for Instagram account {profile_data.get('username')}")
+            
+            # Get recent media for engagement metrics
+            media_url = f"https://graph.facebook.com/v16.0/{instagram_user_id}/media"
             params = {
                 'fields': 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,like_count,comments_count',
-                'limit': 10,
+                'limit': 25,  # Get more posts for better engagement calculation
                 'access_token': access_token
             }
             media_response = requests.get(media_url, params=params)
             media_response.raise_for_status()
             
             media_data = media_response.json()
+            media_items = media_data.get('data', [])
+            logger.info(f"Retrieved {len(media_items)} media items")
             
             # Calculate engagement metrics
             total_likes = 0
             total_comments = 0
-            post_count = len(media_data.get('data', []))
+            post_count = len(media_items)
             
-            for post in media_data.get('data', []):
+            for post in media_items:
                 total_likes += post.get('like_count', 0)
                 total_comments += post.get('comments_count', 0)
             
             engagement = 0
-            followers = profile_data.get('followed_by_count', 0)
+            followers = profile_data.get('followers_count', 0)
             
             if post_count > 0 and followers > 0:
                 engagement = ((total_likes + total_comments) / post_count) / followers * 100
             
-            return {
+            # Get insights if available (business accounts only)
+            insights_data = {}
+            try:
+                insights_url = f"https://graph.facebook.com/v16.0/{instagram_user_id}/insights"
+                params = {
+                    'metric': 'impressions,reach,profile_views',
+                    'period': 'day',
+                    'access_token': access_token
+                }
+                insights_response = requests.get(insights_url, params=params)
+                insights_response.raise_for_status()
+                insights_data = insights_response.json()
+                logger.info(f"Retrieved Instagram insights data")
+            except Exception as e:
+                logger.warning(f"Failed to get Instagram insights: {str(e)}")
+                # Non-fatal error, continue without insights
+            
+            # Construct the full profile data
+            account_data = {
                 'platform': 'instagram',
                 'username': profile_data.get('username'),
-                'full_name': profile_data.get('username'),  # Instagram Graph API doesn't provide full_name
+                'full_name': profile_data.get('name', profile_data.get('username')),
                 'profile_url': f"https://instagram.com/{profile_data.get('username')}",
                 'profile_image': profile_data.get('profile_picture_url'),
                 'bio': profile_data.get('biography'),
-                'followers_count': profile_data.get('followed_by_count', 0),
+                'website': profile_data.get('website'),
+                'followers_count': followers,
                 'following_count': profile_data.get('follows_count', 0),
                 'posts_count': profile_data.get('media_count', 0),
                 'engagement_rate': engagement,
+                'account_type': 'business',  # Since we're using the Instagram Graph API, it's a business account
+                'facebook_page_id': instagram_account['page_id'],
+                'facebook_page_name': instagram_account['page_name'],
                 'metrics': {
-                    'followers': profile_data.get('followed_by_count', 0),
+                    'followers': followers,
                     'engagement': engagement,
                     'posts': profile_data.get('media_count', 0),
                     'likes': total_likes,
-                    'comments': total_comments
-                }
+                    'comments': total_comments,
+                    'impressions': SocialMediaService._extract_metric_value(insights_data, 'impressions'),
+                    'reach': SocialMediaService._extract_metric_value(insights_data, 'reach'),
+                    'profile_views': SocialMediaService._extract_metric_value(insights_data, 'profile_views')
+                },
+                'recent_media': [
+                    {
+                        'id': post.get('id'),
+                        'caption': post.get('caption', ''),
+                        'media_type': post.get('media_type'),
+                        'url': post.get('permalink'),
+                        'thumbnail': post.get('thumbnail_url') or post.get('media_url'),
+                        'timestamp': post.get('timestamp'),
+                        'likes': post.get('like_count', 0),
+                        'comments': post.get('comments_count', 0)
+                    }
+                    for post in media_items[:5]  # Include only first 5 posts in the response
+                ]
             }
+            
+            return account_data
             
         except Exception as e:
             logger.error(f"Error fetching Instagram profile data: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
+    
+    @staticmethod
+    def _extract_metric_value(insights_data, metric_name):
+        """Helper to extract the value from Instagram insights response."""
+        try:
+            for metric in insights_data.get('data', []):
+                if metric.get('name') == metric_name:
+                    return metric.get('values', [{}])[0].get('value', 0)
+            return 0
+        except Exception:
+            return 0
     
     @staticmethod
     def fetch_tiktok_profile(user_id, username=None):

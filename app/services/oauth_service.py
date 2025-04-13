@@ -37,25 +37,29 @@ def config_oauth(app):
     else:
         logger.warning("Facebook OAuth client not configured - missing credentials")
     
-    # Instagram OAuth configuration
-    instagram_client_id = os.getenv('INSTAGRAM_CLIENT_ID')
-    instagram_client_secret = os.getenv('INSTAGRAM_CLIENT_SECRET')
+    # Instagram OAuth configuration (using Facebook Graph API)
+    # Note: Instagram Graph API is accessed through Facebook's OAuth
+    instagram_client_id = os.getenv('INSTAGRAM_CLIENT_ID', facebook_client_id)  # Typically same as Facebook ID
+    instagram_client_secret = os.getenv('INSTAGRAM_CLIENT_SECRET', facebook_client_secret)  # Typically same as Facebook secret
     instagram_redirect_uri = os.getenv('INSTAGRAM_REDIRECT_URI', 'http://localhost:5000/api/auth/instagram/callback')
     
     if instagram_client_id and len(instagram_client_id) > 0:
-        logger.info("Registering Instagram OAuth client")
+        logger.info(f"Registering Instagram Graph API OAuth client with ID: {instagram_client_id[:5]}...")
         oauth.register(
             name='instagram',
             client_id=instagram_client_id,
             client_secret=instagram_client_secret,
-            authorize_url='https://api.instagram.com/oauth/authorize',
+            authorize_url='https://www.facebook.com/v16.0/dialog/oauth',  # Use Facebook's OAuth dialog
             authorize_params=None,
-            access_token_url='https://api.instagram.com/oauth/access_token',
+            access_token_url='https://graph.facebook.com/v16.0/oauth/access_token',  # Use Facebook's token endpoint
             access_token_params=None,
             refresh_token_url=None,
             redirect_uri=instagram_redirect_uri,
-            client_kwargs={'scope': 'user_profile,user_media'},
+            client_kwargs={
+                'scope': 'instagram_basic,instagram_content_publish,instagram_manage_comments,instagram_manage_insights'
+            },
         )
+        logger.info("Instagram OAuth client registered successfully")
     else:
         logger.warning("Instagram OAuth client not configured - missing credentials")
     
