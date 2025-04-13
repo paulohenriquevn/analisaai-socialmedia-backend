@@ -16,6 +16,7 @@ def init_app(app):
     from app.api.analytics import sentiment_bp
     from app.api.analytics import posting_time_bp
     from app.api.search import bp as search_bp
+    from app.api.social_media import bp as social_media_bp
     
     # Register blueprints with proper URL prefixes
     api.register_blueprint(auth_bp, url_prefix='/auth')
@@ -25,6 +26,7 @@ def init_app(app):
     api.register_blueprint(sentiment_bp, url_prefix='/analytics/sentiment')
     api.register_blueprint(posting_time_bp, url_prefix='/analytics/posting-time')
     api.register_blueprint(search_bp, url_prefix='/search')
+    api.register_blueprint(social_media_bp, url_prefix='/social-media')
     
     # Register main API blueprint
     app.register_blueprint(api)

@@ -57,7 +57,7 @@ def get_benchmarks():
 @jwt_required()
 def get_recommendations():
     """Get influencer recommendations based on filters."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Parse filters from query parameters
     filters = {}
@@ -82,7 +82,7 @@ def get_recommendations():
 @jwt_required()
 def get_dashboard():
     """Get consolidated dashboard metrics for all platforms."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     try:
         # Validate request parameters
@@ -120,7 +120,7 @@ def get_dashboard():
 @jwt_required()
 def refresh_dashboard():
     """Force refresh of dashboard metrics."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     try:
         # Validate request parameters

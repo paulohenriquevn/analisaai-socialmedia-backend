@@ -32,7 +32,7 @@ def register_jwt_handlers(jwt):
 
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
-        return jsonify({"error": "Invalid token"}), 401
+        return jsonify({"error": "Token inválido"}), 401
     
     @jwt.unauthorized_loader
     def unauthorized_callback(error):

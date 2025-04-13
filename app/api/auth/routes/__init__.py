@@ -157,12 +157,12 @@ def login():
 @jwt_required(refresh=True)
 def refresh_token():
     """Refresh JWT token."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Find user
     user = User.query.get(user_id)
     if not user or not user.is_active:
-        return jsonify({"error": "Invalid token"}), 401
+        return jsonify({"error": "Token inválido"}), 401
     
     # Generate new access token
     access_token = create_access_token(
@@ -178,7 +178,7 @@ def refresh_token():
 @jwt_required()
 def get_profile():
     """Get current user profile."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Find user
     user = User.query.get(user_id)
@@ -455,7 +455,7 @@ def facebook_callback():
 @jwt_required()
 def instagram_auth():
     """Initiate Instagram OAuth flow."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     logger.info(f"Starting Instagram OAuth flow for user {user_id}")
     
     # Clear any previous session data and store user ID
@@ -681,7 +681,7 @@ def complete_profile():
 @jwt_required()
 def tiktok_auth():
     """Initiate TikTok OAuth flow."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     # Store state for later verification
     session['user_id'] = user_id
     redirect_uri = url_for('api.auth.tiktok_callback', _external=True)

@@ -68,13 +68,16 @@ def generate_tokens(user_id):
     Returns:
         dict: Dictionary containing access_token and refresh_token
     """
+    # Ensure user_id is a string for JWT subject
+    str_user_id = str(user_id)
+    
     access_token = create_access_token(
-        identity=user_id,
+        identity=str_user_id,
         expires_delta=timedelta(hours=1)
     )
     
     refresh_token = create_refresh_token(
-        identity=user_id,
+        identity=str_user_id,
         expires_delta=timedelta(days=30)
     )
     

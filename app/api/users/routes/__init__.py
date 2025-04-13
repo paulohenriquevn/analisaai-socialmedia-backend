@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def get_connected_accounts():
     """Get all connected social media accounts for the current user."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Query all tokens for this user
     tokens = SocialToken.query.filter_by(user_id=user_id).all()
@@ -42,7 +42,7 @@ def get_connected_accounts():
 @jwt_required()
 def get_instagram_accounts():
     """Get connected Instagram business accounts for the current user."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Check if user has an Instagram token
     token = SocialToken.query.filter_by(user_id=user_id, platform='instagram').first()
@@ -102,7 +102,7 @@ def get_instagram_accounts():
 @jwt_required()
 def get_instagram_profile():
     """Get detailed Instagram profile data including metrics."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Optional username parameter
     username = request.args.get('username')
@@ -145,7 +145,7 @@ def get_instagram_profile():
 @jwt_required()
 def disconnect_account(platform):
     """Disconnect a social media account."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     
     # Validate platform
     valid_platforms = ['instagram', 'facebook', 'tiktok']

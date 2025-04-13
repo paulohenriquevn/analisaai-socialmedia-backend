@@ -105,7 +105,7 @@ def get_influencer(influencer_id):
 @jwt_required()
 def lookup_influencer():
     """Look up an influencer by username and platform, fetch latest data."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.json
     
     # Validate required fields

@@ -138,7 +138,7 @@ def get_influencer_sentiment(influencer_id):
 def fetch_post_comments(post_id):
     """Fetch and analyze comments for a specific post."""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get the post
         post = SocialPost.query.get(post_id)

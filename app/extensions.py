@@ -24,17 +24,20 @@ def init_extensions(app):
     migrate.init_app(app, db)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
+    # Register JWT error handlers
+    # from app.utils.error_handlers import register_jwt_handlers
+    # register_jwt_handlers(jwt)
+    
     # Configure cache
     cache_config = {
         'CACHE_TYPE': 'SimpleCache',  # Use simple in-memory cache
-        'CACHE_DEFAULT_TIMEOUT': 300  # Default timeout is 5 minutes
+        'CACHE_DEFAULT_TIMEOUT': 300,  # Default timeout is 5 minutes
+        'CACHE_KEY_PREFIX': 'analisaai_',  # Add a prefix to avoid collisions
     }
     app.config.from_mapping(cache_config)
     cache.init_app(app)
-    
-    # Register JWT error handlers
-    from app.utils.error_handlers import register_jwt_handlers
-    register_jwt_handlers(jwt)
+    # from app.utils.error_handlers import register_jwt_handlers
+    # register_jwt_handlers(jwt)
     
     # Configure OAuth
     oauth.init_app(app)

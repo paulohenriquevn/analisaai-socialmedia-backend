@@ -23,7 +23,7 @@ bp = Blueprint('posting_time', __name__)
 def get_best_posting_times():
     """Get best posting times based on historical engagement data."""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Validate request parameters
         schema = PostingTimeRequestSchema()
@@ -56,7 +56,7 @@ def get_best_posting_times():
 def get_content_type_performance():
     """Get performance analysis for different content types."""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Validate request parameters
         schema = PostingTimeRequestSchema()
@@ -88,7 +88,7 @@ def get_content_type_performance():
 def get_day_of_week_analysis():
     """Get performance analysis by day of week."""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Validate request parameters
         schema = PostingTimeRequestSchema()
@@ -150,7 +150,7 @@ def get_industry_benchmarks():
 def get_personalized_recommendations():
     """Get personalized posting time recommendations."""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Validate request parameters
         schema = PostingTimeRequestSchema()

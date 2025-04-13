@@ -1,0 +1,210 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-04-13T13:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_debug_auth_status",
+      "parentId": "fld_debug",
+      "modified": 1681419871901,
+      "created": 1681419871901,
+      "url": "{{ _.BASE_URL }}/api/auth/auth-status",
+      "name": "Auth Status",
+      "description": "Check authentication configuration and status",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1681419871901,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_debug",
+      "parentId": "wrk_analisaai_debug",
+      "modified": 1681419871900,
+      "created": 1681419871900,
+      "name": "Debugging",
+      "description": "Debugging requests for troubleshooting",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1681419871900,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_analisaai_debug",
+      "parentId": null,
+      "modified": 1681419871899,
+      "created": 1681419871899,
+      "name": "AnalisaAI Debugging",
+      "description": "Debugging requests for the AnalisaAI Social Media API",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "req_debug_oauth_clients",
+      "parentId": "fld_debug",
+      "modified": 1681419871902,
+      "created": 1681419871902,
+      "url": "{{ _.BASE_URL }}/api/auth/debug/oauth-clients",
+      "name": "OAuth Clients",
+      "description": "Debug registered OAuth clients",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1681419871902,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_debug_root",
+      "parentId": "fld_debug",
+      "modified": 1681419871903,
+      "created": 1681419871903,
+      "url": "{{ _.BASE_URL }}",
+      "name": "API Root",
+      "description": "Check if API is responding",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1681419871903,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_debug_auth_profile",
+      "parentId": "fld_debug",
+      "modified": 1681419871904,
+      "created": 1681419871904,
+      "url": "{{ _.BASE_URL }}/api/auth/profile",
+      "name": "Auth Profile",
+      "description": "Get profile to verify auth token is working",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -1681419871904,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_debug_login_plain",
+      "parentId": "fld_debug",
+      "modified": 1681419871905,
+      "created": 1681419871905,
+      "url": "{{ _.BASE_URL }}/api/auth/login",
+      "name": "Login (Simple)",
+      "description": "Simplified login to obtain tokens",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"username\": \"testuser\",\n\t\"password\": \"SecurePassword123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1681419871905,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_debug_create_test_user",
+      "parentId": "fld_debug",
+      "modified": 1681419871906,
+      "created": 1681419871906,
+      "url": "{{ _.BASE_URL }}/api/auth/register",
+      "name": "Create Test User",
+      "description": "Create a test user for debugging",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"username\": \"debuguser\",\n\t\"email\": \"debug@example.com\",\n\t\"password\": \"DebugPassword123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1681419871906,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "env_debug_base",
+      "parentId": "wrk_analisaai_debug",
+      "modified": 1681419871907,
+      "created": 1681419871907,
+      "name": "Debug Environment",
+      "data": {
+        "BASE_URL": "http://localhost:5000",
+        "ACCESS_TOKEN": "",
+        "REFRESH_TOKEN": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "BASE_URL",
+          "ACCESS_TOKEN",
+          "REFRESH_TOKEN"
+        ]
+      },
+      "color": "#7d69cb",
+      "isPrivate": false,
+      "metaSortKey": 1681419871907,
+      "_type": "environment"
+    }
+  ]
+}
