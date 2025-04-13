@@ -60,5 +60,18 @@ def create_app(config_name=None):
         # Register API blueprints
         from app.api import init_app
         init_app(app)
+        
+        # Initialize NLP resources for sentiment analysis
+        try:
+            import nltk
+            # Download required NLTK resources for Portuguese
+            resources = ['punkt', 'stopwords', 'rslp']
+            for resource in resources:
+                try:
+                    nltk.download(resource, quiet=True)
+                except Exception as e:
+                    app.logger.warning(f"Could not download NLTK resource {resource}: {str(e)}")
+        except ImportError:
+            app.logger.warning("NLTK not installed. Sentiment analysis will use fallback methods.")
     
     return app

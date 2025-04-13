@@ -96,3 +96,77 @@ class DashboardResponseSchema(Schema):
     metrics = fields.Nested(ConsolidatedMetricsSchema)
     distribution = fields.Nested(PlatformDistributionSchema)
     insights = fields.Nested(CategoryInsightsSchema)
+
+
+# New schemas for sentiment analysis
+
+class SentimentAnalysisRequestSchema(Schema):
+    """Schema for sentiment analysis request."""
+    text = fields.String(required=True, validate=validate.Length(min=1))
+
+
+class CommentSchema(Schema):
+    """Schema for a social media comment."""
+    id = fields.Integer()
+    comment_id = fields.String()
+    post_id = fields.Integer(required=False)
+    post_url = fields.String(required=False)
+    author_username = fields.String()
+    author_display_name = fields.String()
+    author_picture = fields.String()
+    content = fields.String()
+    posted_at = fields.String()
+    likes_count = fields.Integer()
+    sentiment = fields.String()
+    sentiment_score = fields.Float()
+    is_critical = fields.Boolean(required=False)
+
+
+class SentimentDistributionSchema(Schema):
+    """Schema for sentiment distribution."""
+    counts = fields.Dict(keys=fields.String(), values=fields.Integer())
+    percentages = fields.Dict(keys=fields.String(), values=fields.Float())
+
+
+class SentimentTrendPointSchema(Schema):
+    """Schema for sentiment trend data points."""
+    date = fields.String()
+    average_score = fields.Float()
+    comments_count = fields.Integer()
+    sentiment_counts = fields.Dict(keys=fields.String(), values=fields.Integer())
+
+
+class PostSentimentAnalysisSchema(Schema):
+    """Schema for post sentiment analysis response."""
+    post_id = fields.Integer()
+    platform = fields.String()
+    comments_count = fields.Integer()
+    sentiment_distribution = fields.Nested(SentimentDistributionSchema)
+    critical_comments = fields.List(fields.Nested(CommentSchema))
+    top_positive = fields.List(fields.Nested(CommentSchema))
+    top_negative = fields.List(fields.Nested(CommentSchema))
+    average_sentiment_score = fields.Float()
+    last_updated = fields.String()
+    error = fields.String(required=False)
+
+
+class InfluencerSentimentAnalysisSchema(Schema):
+    """Schema for influencer sentiment analysis response."""
+    influencer_id = fields.Integer()
+    posts_count = fields.Integer()
+    comments_count = fields.Integer()
+    sentiment_distribution = fields.Nested(SentimentDistributionSchema)
+    sentiment_trend = fields.List(fields.Nested(SentimentTrendPointSchema))
+    critical_comments = fields.List(fields.Nested(CommentSchema))
+    average_sentiment_score = fields.Float()
+    last_updated = fields.String()
+    error = fields.String(required=False)
+
+
+class SentimentAnalysisResponseSchema(Schema):
+    """Schema for sentiment analysis response."""
+    text = fields.String()
+    sentiment = fields.String()
+    score = fields.Float()
+    is_critical = fields.Boolean()
+    error = fields.String(required=False)

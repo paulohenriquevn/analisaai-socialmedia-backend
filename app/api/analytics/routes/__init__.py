@@ -12,6 +12,10 @@ from app.api.analytics.schemas import MetricsRequestSchema, DashboardResponseSch
 # Create blueprint
 bp = Blueprint('analytics', __name__)
 
+# Import and register sub-routes
+from app.api.analytics.routes.sentiment import bp as sentiment_bp
+from app.api.analytics.routes.posting_time import bp as posting_time_bp
+
 @bp.route('/influencer/<int:influencer_id>/growth', methods=['GET'])
 @jwt_required()
 def get_influencer_growth(influencer_id):

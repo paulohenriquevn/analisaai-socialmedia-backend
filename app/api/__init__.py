@@ -13,6 +13,8 @@ def init_app(app):
     from app.api.users import bp as users_bp
     from app.api.influencers import bp as influencers_bp
     from app.api.analytics import bp as analytics_bp
+    from app.api.analytics import sentiment_bp
+    from app.api.analytics import posting_time_bp
     from app.api.search import bp as search_bp
     
     # Register blueprints with proper URL prefixes
@@ -20,6 +22,8 @@ def init_app(app):
     api.register_blueprint(users_bp, url_prefix='/users')
     api.register_blueprint(influencers_bp, url_prefix='/influencers')
     api.register_blueprint(analytics_bp, url_prefix='/analytics')
+    api.register_blueprint(sentiment_bp, url_prefix='/analytics/sentiment')
+    api.register_blueprint(posting_time_bp, url_prefix='/analytics/posting-time')
     api.register_blueprint(search_bp, url_prefix='/search')
     
     # Register main API blueprint
