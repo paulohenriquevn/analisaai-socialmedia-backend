@@ -76,45 +76,23 @@
 - Em caso de falha, sistema deve tentar novamente após período adequado
 - Usuário deve poder visualizar status da última sincronização
 
-### US-006: Conexão com Conta do TikTok
-**Como** um criador de conteúdo  
-**Quero** conectar minha conta do TikTok  
-**Para** analisar o desempenho dos meus vídeos
-
-#### Tasks:
-- Implementar autenticação com TikTok Business API
-- Criar interface para autorização e conexão de conta
-- Desenvolver mecanismo de refresh token
-- Armazenar tokens de acesso de forma segura
-- Criar rotina de sincronização inicial de dados
-
-#### Critérios de Aceite:
-- Usuário deve ser redirecionado para tela de autorização do TikTok
-- Após autorização, sistema deve obter e armazenar tokens de acesso
-- Sistema deve verificar se a conta tem acesso à API de creator
-- Usuário deve poder visualizar e remover contas conectadas
-- Dados básicos do perfil devem ser sincronizados imediatamente após conexão
-
 ## 3. Módulo de Análise e Insights
 
-### US-007: Dashboard de Métricas Consolidadas
+
+### US-007: Métricas Consolidadas
 **Como** um gerente de marketing  
 **Quero** visualizar um dashboard consolidado de métricas  
 **Para** ter uma visão geral do desempenho nas redes sociais
 
 #### Tasks:
-- Projetar layout do dashboard com cards de KPIs
-- Implementar gráficos interativos com ApexCharts
-- Criar filtros por plataforma, período e tipo de conteúdo
 - Desenvolver cálculos de métricas consolidadas
 - Implementar cache para carregamento rápido de dados frequentes
 
 #### Critérios de Aceite:
-- Dashboard deve exibir KPIs principais: engajamento, alcance, crescimento de seguidores
-- Usuário deve poder filtrar por período (7 dias, 30 dias, 90 dias, personalizado)
-- Gráficos devem ser interativos e responsivos
-- Dashboard deve carregar em menos de 3 segundos
 - Métricas devem ser atualizadas em tempo real ou com indicação da última atualização
+
+
+
 
 ### US-008: Análise de Sentimentos em Comentários
 **Como** um gestor de comunidade  
@@ -125,15 +103,15 @@
 - Implementar coleta de comentários via APIs
 - Criar modelo de NLP para análise de sentimentos em português
 - Desenvolver pipeline de processamento de texto
-- Criar visualização de distribuição de sentimentos
 - Implementar detecção de comentários críticos
 
 #### Critérios de Aceite:
 - Sistema deve classificar comentários como positivos, neutros ou negativos
 - Análise deve ter precisão mínima de 80% (validada manualmente)
-- Dashboard deve mostrar proporção de cada tipo de sentimento
 - Sistema deve destacar comentários com sentimento fortemente negativo
 - Análise deve considerar emojis e gírias comuns em redes sociais
+
+
 
 ### US-009: Identificação de Melhor Horário para Postagem
 **Como** um criador de conteúdo  
@@ -142,7 +120,6 @@
 
 #### Tasks:
 - Desenvolver algoritmo de análise de horários x engajamento
-- Criar visualização de mapa de calor por dia/hora
 - Implementar segmentação por tipo de conteúdo
 - Criar recomendações personalizadas baseadas em dados históricos
 - Adicionar comparação com benchmarks da indústria
@@ -150,9 +127,11 @@
 #### Critérios de Aceite:
 - Sistema deve analisar pelo menos 90 dias de dados históricos
 - Recomendações devem ser segmentadas por plataforma
-- Mapa de calor deve mostrar claramente os horários de maior engajamento
 - Recomendações devem considerar o tipo de conteúdo (vídeo, imagem, texto)
 - Usuário deve poder visualizar tendências por dia da semana
+
+
+
 
 ## 4. Módulo de Relatórios e Exportação
 

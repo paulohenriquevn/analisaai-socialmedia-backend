@@ -3,8 +3,11 @@ Analytics-related routes.
 """
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
+from marshmallow import ValidationError
 
 from app.services.analytics_service import AnalyticsService
+from app.api.analytics.schemas import MetricsRequestSchema, DashboardResponseSchema
 
 # Create blueprint
 bp = Blueprint('analytics', __name__)
@@ -69,3 +72,82 @@ def get_recommendations():
     return jsonify({
         "recommendations": recommendations
     })
+
+
+@bp.route('/dashboard', methods=['GET'])
+@jwt_required()
+def get_dashboard():
+    """Get consolidated dashboard metrics for all platforms."""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Validate request parameters
+        schema = MetricsRequestSchema()
+        params = schema.load(request.args)
+        
+        timeframe = params.get('timeframe', 'month')
+        
+        # Get consolidated metrics with cache
+        metrics = AnalyticsService.get_consolidated_metrics(user_id, timeframe)
+        
+        # Get platform distribution (cached)
+        distribution = AnalyticsService.get_platform_distribution()
+        
+        # Get category insights (cached)
+        insights = AnalyticsService.get_category_insights()
+        
+        # Validate and serialize response
+        response_data = {
+            "metrics": metrics,
+            "distribution": distribution,
+            "insights": insights
+        }
+        
+        response_schema = DashboardResponseSchema()
+        validated_data = response_schema.dump(response_data)
+        
+        return jsonify(validated_data)
+        
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@bp.route('/dashboard/refresh', methods=['POST'])
+@jwt_required()
+def refresh_dashboard():
+    """Force refresh of dashboard metrics."""
+    user_id = get_jwt_identity()
+    
+    try:
+        # Validate request parameters
+        schema = MetricsRequestSchema()
+        params = schema.load(request.args)
+        
+        timeframe = params.get('timeframe', 'month')
+        
+        # Get metrics without cache by first invalidating the cache key
+        from app.extensions import cache
+        
+        # Clear multiple caches
+        cache.delete_memoized(AnalyticsService.get_consolidated_metrics, user_id, timeframe)
+        cache.delete_memoized(AnalyticsService.get_platform_distribution)
+        cache.delete_memoized(AnalyticsService.get_category_insights)
+        
+        # Get fresh metrics
+        metrics = AnalyticsService.get_consolidated_metrics(user_id, timeframe)
+        distribution = AnalyticsService.get_platform_distribution()
+        insights = AnalyticsService.get_category_insights()
+        
+        # Validate and serialize response
+        response_data = {
+            "metrics": metrics,
+            "distribution": distribution,
+            "insights": insights,
+            "refreshed_at": datetime.utcnow().isoformat()
+        }
+        
+        # We're not using the schema here since we added a custom field
+        return jsonify(response_data)
+        
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
