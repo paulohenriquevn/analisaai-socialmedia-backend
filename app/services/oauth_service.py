@@ -13,55 +13,69 @@ def config_oauth(app):
     """Configure OAuth clients for various social media platforms."""
     logger.info("Configuring OAuth clients...")
     
-    # Instagram OAuth configuration
-    if 'INSTAGRAM_CLIENT_ID' in app.config and app.config['INSTAGRAM_CLIENT_ID']:
-        logger.info("Registering Instagram OAuth client")
-        oauth.register(
-            name='instagram',
-            client_id=app.config['INSTAGRAM_CLIENT_ID'],
-            client_secret=app.config['INSTAGRAM_CLIENT_SECRET'],
-            authorize_url='https://api.instagram.com/oauth/authorize',
-            authorize_params=None,
-            access_token_url='https://api.instagram.com/oauth/access_token',
-            access_token_params=None,
-            refresh_token_url=None,
-            redirect_uri=app.config['INSTAGRAM_REDIRECT_URI'],
-            client_kwargs={'scope': 'user_profile,user_media'},
-        )
-    else:
-        logger.warning("Instagram OAuth client not configured - missing credentials")
+    import os
     
-    # Facebook OAuth configuration
-    if 'FACEBOOK_CLIENT_ID' in app.config and app.config['FACEBOOK_CLIENT_ID']:
-        logger.info(f"Registering Facebook OAuth client with ID: {app.config['FACEBOOK_CLIENT_ID'][:5]}...")
+    # Facebook OAuth configuration - register directly from environment variables
+    facebook_client_id = os.getenv('FACEBOOK_CLIENT_ID')
+    facebook_client_secret = os.getenv('FACEBOOK_CLIENT_SECRET')
+    facebook_redirect_uri = os.getenv('FACEBOOK_REDIRECT_URI', 'http://localhost:5000/api/auth/facebook/callback')
+    
+    if facebook_client_id and len(facebook_client_id) > 0:
+        logger.info(f"Registering Facebook OAuth client with ID: {facebook_client_id[:5]}...")
         oauth.register(
             name='facebook',
-            client_id=app.config['FACEBOOK_CLIENT_ID'],
-            client_secret=app.config['FACEBOOK_CLIENT_SECRET'],
+            client_id=facebook_client_id,
+            client_secret=facebook_client_secret,
             authorize_url='https://www.facebook.com/v16.0/dialog/oauth',
             authorize_params=None,
             access_token_url='https://graph.facebook.com/v16.0/oauth/access_token',
             access_token_params=None,
             refresh_token_url=None,
-            redirect_uri=app.config['FACEBOOK_REDIRECT_URI'],
-            client_kwargs={'scope': 'pages_read_engagement,instagram_basic,instagram_manage_insights'},
+            redirect_uri=facebook_redirect_uri,
+            client_kwargs={'scope': 'email,public_profile,pages_read_engagement,instagram_basic,instagram_manage_insights'},
         )
     else:
         logger.warning("Facebook OAuth client not configured - missing credentials")
     
+    # Instagram OAuth configuration
+    instagram_client_id = os.getenv('INSTAGRAM_CLIENT_ID')
+    instagram_client_secret = os.getenv('INSTAGRAM_CLIENT_SECRET')
+    instagram_redirect_uri = os.getenv('INSTAGRAM_REDIRECT_URI', 'http://localhost:5000/api/auth/instagram/callback')
+    
+    if instagram_client_id and len(instagram_client_id) > 0:
+        logger.info("Registering Instagram OAuth client")
+        oauth.register(
+            name='instagram',
+            client_id=instagram_client_id,
+            client_secret=instagram_client_secret,
+            authorize_url='https://api.instagram.com/oauth/authorize',
+            authorize_params=None,
+            access_token_url='https://api.instagram.com/oauth/access_token',
+            access_token_params=None,
+            refresh_token_url=None,
+            redirect_uri=instagram_redirect_uri,
+            client_kwargs={'scope': 'user_profile,user_media'},
+        )
+    else:
+        logger.warning("Instagram OAuth client not configured - missing credentials")
+    
     # TikTok OAuth configuration
-    if 'TIKTOK_CLIENT_ID' in app.config and app.config['TIKTOK_CLIENT_ID']:
+    tiktok_client_id = os.getenv('TIKTOK_CLIENT_ID')
+    tiktok_client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
+    tiktok_redirect_uri = os.getenv('TIKTOK_REDIRECT_URI', 'http://localhost:5000/api/auth/tiktok/callback')
+    
+    if tiktok_client_id and len(tiktok_client_id) > 0:
         logger.info("Registering TikTok OAuth client")
         oauth.register(
             name='tiktok',
-            client_id=app.config['TIKTOK_CLIENT_ID'],
-            client_secret=app.config['TIKTOK_CLIENT_SECRET'],
+            client_id=tiktok_client_id,
+            client_secret=tiktok_client_secret,
             authorize_url='https://www.tiktok.com/v2/auth/authorize',
             authorize_params=None,
             access_token_url='https://open.tiktokapis.com/v2/oauth/token',
             access_token_params=None,
             refresh_token_url='https://open.tiktokapis.com/v2/oauth/token',
-            redirect_uri=app.config['TIKTOK_REDIRECT_URI'],
+            redirect_uri=tiktok_redirect_uri,
             client_kwargs={'scope': 'user.info.basic,video.list'},
         )
     else:
