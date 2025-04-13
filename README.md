@@ -21,6 +21,47 @@ Backend API for Analisa.ai Social Media, a platform for analyzing social media i
 - OAuth 2.0 Integration
 - NumPy and Pandas for analytics
 
+## Project Structure
+
+```
+analisaai-socialmedia-backend/
+├── app/                          # Application package
+│   ├── __init__.py               # Application factory
+│   ├── config.py                 # Configuration settings
+│   ├── extensions.py             # Flask extensions
+│   ├── api/                      # API modules
+│   │   ├── __init__.py           # API blueprint registration
+│   │   ├── auth/                 # Authentication endpoints
+│   │   ├── users/                # User management endpoints 
+│   │   ├── influencers/          # Influencer management endpoints
+│   │   ├── analytics/            # Analytics endpoints
+│   │   └── search/               # Search endpoints
+│   ├── models/                   # Data models
+│   │   ├── __init__.py
+│   │   ├── user.py               # User-related models
+│   │   ├── organization.py       # Organization-related models
+│   │   ├── influencer.py         # Influencer-related models
+│   │   └── social_media.py       # Social media integration models
+│   ├── services/                 # Business logic
+│   │   ├── __init__.py
+│   │   ├── oauth_service.py      # OAuth integrations
+│   │   ├── security_service.py   # Security utilities
+│   │   ├── social_media_service.py # Social media API integrations
+│   │   └── analytics_service.py  # Analytics calculations
+│   ├── utils/                    # Helper utilities
+│   │   ├── __init__.py
+│   │   └── error_handlers.py     # Error handling
+│   └── tests/                    # Unit tests
+├── logs/                         # Application logs
+├── migrations/                   # Database migrations
+├── .env.example                  # Environment variables template
+├── config.py                     # Configuration loader
+├── init_db.py                    # Database initialization script
+├── requirements.txt              # Dependencies
+├── run.py                        # Application entry point
+└── setup_db.py                   # Database setup script
+```
+
 ## Setup
 
 ### Prerequisites
@@ -62,22 +103,9 @@ python setup_db.py
 
 # Initialize the database with tables and initial data
 python init_db.py
-
-# Alternative (if the above doesn't work due to circular imports):
-export FLASK_APP=run.py
-flask init-db
 ```
 
-### Configuration
-
-1. Set up OAuth credentials for social media platforms:
-   - Instagram: Create an app in the Facebook Developer Portal
-   - Facebook: Create an app in the Facebook Developer Portal
-   - TikTok: Create an app in the TikTok Developer Portal
-
-2. Add the OAuth credentials to your `.env` file
-
-## Running the Application
+### Running the Application
 
 Start the development server:
 ```bash
@@ -101,6 +129,10 @@ The API will be available at http://localhost:5000
 - GET `/api/auth/facebook` - Initiate Facebook OAuth flow
 - GET `/api/auth/tiktok` - Initiate TikTok OAuth flow
 
+### User Endpoints
+
+- GET `/api/users/me/connected-accounts` - Get connected social accounts
+
 ### Influencer Endpoints
 
 - GET `/api/influencers` - List influencers
@@ -116,29 +148,7 @@ The API will be available at http://localhost:5000
 ### Search Endpoints
 
 - GET `/api/search/influencers` - Search for influencers
-- GET `/api/categories` - Get influencer categories
-
-## Development
-
-### Project Structure
-
-```
-analisaai-socialmedia-backend/
-├── app/
-│   ├── __init__.py         # App initialization
-│   ├── models.py           # Database models
-│   ├── views.py            # API routes and controllers
-│   ├── services/           # Business logic services
-│   │   ├── __init__.py
-│   │   ├── oauth_service.py       # OAuth integrations
-│   │   ├── security_service.py    # Authentication and security
-│   │   ├── social_media_service.py # Social media API integrations
-│   │   └── analytics_service.py   # Analytics and metrics calculation
-│   └── tests/              # Unit tests
-├── run.py                  # Application entry point
-├── requirements.txt        # Dependencies
-└── .env.example            # Environment variables example
-```
+- GET `/api/search/categories` - Get influencer categories
 
 ## License
 

@@ -18,7 +18,7 @@ def init_db():
     """Initialize the database with required tables and data."""
     # Create a minimal Flask app with just what we need
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://genbi:genbipassword@localhost:5432/socialmedia')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/analisaai')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Initialize database

@@ -1,14 +1,13 @@
-from authlib.integrations.flask_client import OAuth
-from flask import current_app
+"""
+OAuth service for social media platform integrations.
+"""
 import requests
 from datetime import datetime, timedelta
-
-oauth = OAuth()
+from flask import current_app
+from app.extensions import oauth
 
 def config_oauth(app):
     """Configure OAuth clients for various social media platforms."""
-    oauth.init_app(app)
-    
     # Instagram OAuth configuration
     if 'INSTAGRAM_CLIENT_ID' in app.config and app.config['INSTAGRAM_CLIENT_ID']:
         oauth.register(
@@ -54,6 +53,7 @@ def config_oauth(app):
             client_kwargs={'scope': 'user.info.basic,video.list'},
         )
 
+
 def save_token(user_id, platform, token_data):
     """
     Save OAuth tokens securely in the database.
@@ -63,7 +63,7 @@ def save_token(user_id, platform, token_data):
         platform: Platform name (instagram, facebook, tiktok)
         token_data: Token data from OAuth provider
     """
-    from app import db
+    from app.extensions import db
     from app.models import SocialToken
     from app.services.security_service import encrypt_token
     
@@ -106,6 +106,7 @@ def save_token(user_id, platform, token_data):
         db.session.add(new_token)
     
     db.session.commit()
+
 
 def get_token(user_id, platform):
     """
@@ -150,6 +151,7 @@ def get_token(user_id, platform):
         'expires_at': token.expires_at
     }
 
+
 def refresh_social_token(platform, refresh_token):
     """
     Refresh an expired OAuth token.
@@ -188,4 +190,4 @@ def refresh_social_token(platform, refresh_token):
         if response.status_code == 200:
             return response.json()
     
-    return None 
+    return None

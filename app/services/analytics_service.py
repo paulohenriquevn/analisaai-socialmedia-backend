@@ -1,8 +1,11 @@
+"""
+Analytics service for calculating metrics and insights.
+"""
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
+from app.extensions import db
 from app.models import Influencer, InfluencerMetric
-from app import db
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,11 +1,15 @@
-from cryptography.fernet import Fernet
+"""
+Security-related services including encryption, token generation, and role management.
+"""
 import base64
 import os
-from flask_jwt_extended import create_access_token, create_refresh_token
 from datetime import timedelta
-from app.models import User, Role
+from flask_jwt_extended import create_access_token, create_refresh_token
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-# Generate a valid Fernet key
+# Generate a valid Fernet key for encryption
 def get_encryption_key():
     """
     Generate or retrieve a valid Fernet key for encryption.
@@ -24,9 +28,6 @@ def get_encryption_key():
             pass
     
     # Generate a secure key from the passphrase
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    
     # Use the provided key as a passphrase or use default
     default_key = "analisaai-social-media-default-secure-key-2024"
     passphrase = stored_key or default_key
@@ -109,6 +110,8 @@ def has_role(user, role_name):
 
 def init_roles(db):
     """Initialize default roles in the database."""
+    from app.models import Role
+    
     default_roles = ['admin', 'user', 'analyst']
     
     for role_name in default_roles:
@@ -116,4 +119,4 @@ def init_roles(db):
             role = Role(name=role_name)
             db.session.add(role)
     
-    db.session.commit() 
+    db.session.commit()

@@ -1,10 +1,13 @@
+"""
+Service for interacting with social media platforms.
+"""
 import requests
 import json
 import logging
 from datetime import datetime, timedelta
+from app.extensions import db
 from app.models import Influencer, InfluencerMetric, Category
 from app.services.oauth_service import get_token
-from app import db
 
 logger = logging.getLogger(__name__)
 
