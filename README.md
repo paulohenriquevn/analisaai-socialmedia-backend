@@ -7,7 +7,10 @@ Backend API for Analisa.ai Social Media, a platform for analyzing social media i
 - User authentication with JWT
 - Social media integration with Instagram, Facebook, and TikTok
 - Influencer data collection and analysis
-- Analytics and metrics calculation
+- Social media post collection and storage
+- Engagement, reach, and growth metrics
+- Posting time optimization
+- Sentiment analysis
 - Search and discovery features
 - API for frontend integration
 
@@ -116,6 +119,12 @@ The API will be available at http://localhost:5000
 
 ## API Documentation
 
+Detailed API documentation is available in the `docs` folder:
+- [Integration Guide](docs/integration_guide.md)
+- [Facebook Integration](docs/facebook_integration.md)
+- [Posting Time Optimization](docs/posting_time_optimization.md)
+- [Sentiment Analysis](docs/sentiment_analysis.md)
+
 ### Authentication Endpoints
 
 - POST `/api/auth/register` - Register a new user
@@ -139,16 +148,31 @@ The API will be available at http://localhost:5000
 - GET `/api/influencers/:id` - Get influencer details
 - POST `/api/influencers/lookup` - Look up influencer by username
 
+### Social Media Post Endpoints
+
+- POST `/api/social-media/influencer/:id/refresh` - Refresh influencer data and posts
+- POST `/api/social-media/influencer/:id/fetch-posts` - Fetch and save recent posts
+
 ### Analytics Endpoints
 
-- GET `/api/analytics/influencer/:id/growth` - Get influencer growth metrics
-- GET `/api/analytics/benchmarks` - Get platform benchmarks
-- GET `/api/analytics/recommendations` - Get influencer recommendations
+- GET `/api/analytics/engagement/metrics/:id` - Get engagement metrics
+- GET `/api/analytics/reach/metrics/:id` - Get reach metrics
+- GET `/api/analytics/growth/metrics/:id` - Get growth metrics
+- GET `/api/analytics/score/comparison/:id` - Compare influencer scores
+- GET `/api/analytics/posting-time/best-times` - Get optimal posting times
 
 ### Search Endpoints
 
 - GET `/api/search/influencers` - Search for influencers
 - GET `/api/search/categories` - Get influencer categories
+
+### Scripts
+
+The repository includes several utility scripts in the `scripts` folder:
+
+- `fetch_influencer_posts.py` - Batch fetch and save posts for influencers
+- `check_influencers.py` - Check and validate influencer data
+- `seed_influencers.py` - Seed the database with sample influencers
 
 ## License
 
