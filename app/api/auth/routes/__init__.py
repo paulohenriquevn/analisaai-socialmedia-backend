@@ -141,104 +141,35 @@ def login():
     # Generate tokens
     tokens = generate_tokens(user.id)
     
-    # Start process to sync influencer data and calculate all metrics
+    # Start background process to sync influencer data and calculate all metrics
     try:
-        # Import required modules
-        from app.services.social_media_service import SocialMediaService
-        from app.services.engagement_service import EngagementService
-        from app.services.reach_service import ReachService
-        from app.services.growth_service import GrowthService
-        from app.services.score_service import ScoreService
+        # Import task queue service and tasks
+        from app.services import task_queue_service
+        from app.api.social_media.routes.tasks import sync_influencer_data
         from app.models.influencer import Influencer
         
-        logger.info(f"Starting automatic metrics update on login for user {user.id}")
+        logger.info(f"Starting asynchronous metrics update on login for user {user.id}")
         
-        # Get all influencers from the database to sync 
-        # Order by updated_at to prioritize oldest entries
-        influencers = Influencer.query.order_by(Influencer.updated_at.asc()).all()
+        # Get influencers to sync in the main thread with app context
+        influencers = Influencer.query.order_by(Influencer.updated_at.asc()).limit(5).all()
+        influencer_ids = [influencer.id for influencer in influencers]
         
-        if influencers:
-            logger.info(f"Found {len(influencers)} influencers to update")
+        if influencer_ids:
+            logger.info(f"Found {len(influencer_ids)} influencers to update during login")
             
-            # Process a limited number of influencers (to avoid long login times)
-            for influencer in influencers[:5]:  # Limit to 5 influencers per login
-                platform = influencer.platform
-                username = influencer.username
-                influencer_id = influencer.id
-                
-                if platform and username:
-                    logger.info(f"Updating metrics for {platform} influencer {username} (ID: {influencer_id})")
-                    
-                    try:
-                        # Step 1: Update profile data from social media APIs
-                        # Use Apify to fetch updated profile data
-                        if platform == 'instagram':
-                            profile_data = SocialMediaService.fetch_instagram_profile(user.id, username)
-                        elif platform == 'facebook':
-                            profile_data = SocialMediaService.fetch_facebook_profile(user.id, username)
-                        elif platform == 'tiktok':
-                            profile_data = SocialMediaService.fetch_tiktok_profile(user.id, username)
-                        else:
-                            logger.warning(f"Unsupported platform: {platform}")
-                            continue
-                            
-                        # Update the influencer data if successful
-                        updated_influencer = None
-                        if profile_data and 'error' not in profile_data:
-                            updated_influencer = SocialMediaService.save_influencer_data(profile_data)
-                            logger.info(f"Successfully synced {platform} data for influencer {username}")
-                        else:
-                            logger.warning(f"Failed to fetch data for {platform} influencer {username}")
-                            # Continue with existing data even if fetch fails
-                            updated_influencer = influencer
-                        
-                        # Step 2: Calculate and store all metrics
-                        if updated_influencer:
-                            try:
-                                # Calculate engagement metrics
-                                logger.info(f"Calculating engagement metrics for influencer {username}")
-                                engagement_metrics = EngagementService.calculate_engagement_metrics(updated_influencer.id)
-                                if engagement_metrics:
-                                    logger.info(f"Successfully calculated engagement metrics for influencer {username}")
-                            except Exception as metric_error:
-                                logger.error(f"Error calculating engagement metrics: {str(metric_error)}")
-                            
-                            try:
-                                # Calculate reach metrics
-                                logger.info(f"Calculating reach metrics for influencer {username}")
-                                reach_metrics = ReachService.calculate_reach_metrics(updated_influencer.id, user.id)
-                                if reach_metrics:
-                                    logger.info(f"Successfully calculated reach metrics for influencer {username}")
-                            except Exception as metric_error:
-                                logger.error(f"Error calculating reach metrics: {str(metric_error)}")
-                            
-                            try:
-                                # Calculate growth metrics
-                                logger.info(f"Calculating growth metrics for influencer {username}")
-                                growth_metrics = GrowthService.calculate_growth_metrics(updated_influencer.id)
-                                if growth_metrics:
-                                    logger.info(f"Successfully calculated growth metrics for influencer {username}")
-                            except Exception as metric_error:
-                                logger.error(f"Error calculating growth metrics: {str(metric_error)}")
-                            
-                            try:
-                                # Calculate relevance score (depends on other metrics being calculated first)
-                                logger.info(f"Calculating relevance score for influencer {username}")
-                                score = ScoreService.calculate_relevance_score(updated_influencer.id)
-                                if score:
-                                    logger.info(f"Successfully calculated relevance score for influencer {username}")
-                            except Exception as metric_error:
-                                logger.error(f"Error calculating relevance score: {str(metric_error)}")
-                            
-                            logger.info(f"Metrics update process completed for influencer {username}")
-                            
-                    except Exception as e:
-                        logger.error(f"Error updating metrics for {platform} influencer {username}: {str(e)}")
+            # Enqueue individual sync tasks for each influencer
+            for influencer_id in influencer_ids:
+                task_id = task_queue_service.enqueue_task(
+                    sync_influencer_data,
+                    args=[influencer_id, user.id],
+                    description=f"Post-login sync for influencer {influencer_id}"
+                )
+                logger.info(f"Enqueued background task {task_id} to sync influencer {influencer_id}")
         else:
-            logger.info("No influencers found to update")
+            logger.info("No influencers found to update during login")
             
     except Exception as e:
-        logger.error(f"Error performing automatic metrics update: {str(e)}")
+        logger.error(f"Error starting background metrics update: {str(e)}")
         # Don't block login if update fails
     
     return jsonify({
@@ -269,70 +200,29 @@ def refresh_token():
         identity=user_id
     )
     
-    # Schedule metrics update in background
-    # This is done asynchronously to not block the token refresh
+    # Schedule metrics update in background using task queue
     try:
-        # Import necessary services
-        from app.services.engagement_service import EngagementService
-        from app.services.reach_service import ReachService
-        from app.services.growth_service import GrowthService
-        from app.services.score_service import ScoreService
+        # Import task queue service and tasks
+        from app.services import task_queue_service
+        from app.api.social_media.routes.tasks import sync_influencer_data
         from app.models.influencer import Influencer
-        import threading
         
-        # Define a function to run in a separate thread
-        def update_metrics_in_background():
-            try:
-                logger.info(f"Starting metrics update in background during token refresh for user {user_id}")
-                
-                # Get one oldest updated influencer to refresh
-                influencer = Influencer.query.order_by(Influencer.updated_at.asc()).first()
-                
-                if influencer:
-                    influencer_id = influencer.id
-                    username = influencer.username
-                    
-                    logger.info(f"Updating metrics for influencer {username} (ID: {influencer_id})")
-                    
-                    # Calculate all metrics with individual error handling for each step
-                    try:
-                        engagement_metrics = EngagementService.calculate_engagement_metrics(influencer_id)
-                        logger.info(f"Successfully calculated engagement metrics for influencer {username}")
-                    except Exception as e:
-                        logger.error(f"Error calculating engagement metrics: {str(e)}")
-                    
-                    try:
-                        reach_metrics = ReachService.calculate_reach_metrics(influencer_id, user_id)
-                        logger.info(f"Successfully calculated reach metrics for influencer {username}")
-                    except Exception as e:
-                        logger.error(f"Error calculating reach metrics: {str(e)}")
-                    
-                    try:
-                        growth_metrics = GrowthService.calculate_growth_metrics(influencer_id)
-                        logger.info(f"Successfully calculated growth metrics for influencer {username}")
-                    except Exception as e:
-                        logger.error(f"Error calculating growth metrics: {str(e)}")
-                    
-                    # Calculate score last since it depends on other metrics
-                    try:
-                        score = ScoreService.calculate_relevance_score(influencer_id)
-                        logger.info(f"Successfully calculated relevance score for influencer {username}")
-                    except Exception as e:
-                        logger.error(f"Error calculating relevance score: {str(e)}")
-                    
-                    logger.info(f"Completed background metrics update for influencer {username}")
-                else:
-                    logger.info("No influencers found to update")
-                    
-            except Exception as e:
-                logger.error(f"Error in background metrics update: {str(e)}")
+        logger.info(f"Starting metrics update in background during token refresh for user {user_id}")
         
-        # Start background thread for metrics update
-        metrics_thread = threading.Thread(target=update_metrics_in_background)
-        metrics_thread.daemon = True  # Thread will exit when main thread exits
-        metrics_thread.start()
-        logger.info("Started background metrics update thread")
+        # Get one oldest updated influencer to refresh
+        influencer = Influencer.query.order_by(Influencer.updated_at.asc()).first()
         
+        if influencer:
+            # Enqueue a single task for this influencer
+            task_id = task_queue_service.enqueue_task(
+                sync_influencer_data,
+                args=[influencer.id, user_id],
+                description=f"Token refresh sync for influencer {influencer.id}"
+            )
+            logger.info(f"Enqueued background task {task_id} to sync influencer {influencer.id}")
+        else:
+            logger.info("No influencers found to update during token refresh")
+            
     except Exception as e:
         logger.error(f"Error starting background metrics update: {str(e)}")
         # Don't block token refresh if update setup fails

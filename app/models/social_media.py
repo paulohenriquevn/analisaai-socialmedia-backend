@@ -27,8 +27,8 @@ class SocialPost(db.Model):
     post_id = db.Column(db.String(100), nullable=False, unique=True)
     influencer_id = db.Column(db.Integer, db.ForeignKey('influencer.id'))
     content = db.Column(db.Text)
-    post_url = db.Column(db.String(255))
-    media_url = db.Column(db.String(255))
+    post_url = db.Column(db.Text)
+    media_url = db.Column(db.Text)
     posted_at = db.Column(db.DateTime)
     content_type = db.Column(db.String(20))  # 'image', 'video', 'carousel', 'text', etc.
     category = db.Column(db.String(50))  # 'product', 'lifestyle', 'education', etc.

@@ -32,6 +32,7 @@ class Influencer(db.Model):
     # Relationships
     categories = db.relationship('Category', secondary=influencer_categories, backref=db.backref('influencers', lazy='dynamic'))
     metrics = db.relationship('InfluencerMetric', backref='influencer', lazy='dynamic')
+    posts = db.relationship('SocialPost', backref='influencer', lazy='dynamic')
     # Relationship to reach metrics is defined in the InfluencerReach model
     # Relationship to growth metrics is defined in the InfluencerGrowth model
     # Relationship to score metrics is defined in the InfluencerScore model

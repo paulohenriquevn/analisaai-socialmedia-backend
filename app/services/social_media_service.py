@@ -1093,6 +1093,10 @@ class SocialMediaService:
                         influencer.categories.append(category)
                 logger.info(f"Added {len(profile_data['categories'])} categories to {username}")
             
+            # Save recent posts if available
+            if 'recent_media' in profile_data and profile_data['recent_media']:
+                SocialMediaService.save_recent_posts(influencer.id, profile_data['recent_media'], platform)
+            
             db.session.commit()
             
             # After saving all the data, calculate all metrics
@@ -1127,6 +1131,229 @@ class SocialMediaService:
             logger.error(f"Error saving influencer data for {username} on {platform}: {str(e)}")
             db.session.rollback()
             return None
+    
+    @staticmethod
+    def save_recent_posts(influencer_id, recent_media, platform):
+        """
+        Save recent social media posts for an influencer.
+        
+        Args:
+            influencer_id (int): The ID of the influencer
+            recent_media (list): List of recent posts from social media platform
+            platform (str): Social media platform (instagram, tiktok, facebook)
+            
+        Returns:
+            int: Number of posts saved
+        """
+        from app.models.social_media import SocialPost
+        
+        if not recent_media or not influencer_id:
+            return 0
+        
+        logger.info(f"Saving {len(recent_media)} recent posts for influencer {influencer_id}")
+        posts_saved = 0
+        
+        try:
+            # Parse datetime based on platform-specific format
+            for post_data in recent_media:
+                # Generate a unique post ID if not provided
+                post_id = post_data.get('id')
+                if not post_id:
+                    # Create a deterministic ID based on influencer ID, URL and timestamp
+                    import hashlib
+                    url = post_data.get('url', '')
+                    timestamp = post_data.get('timestamp', '')
+                    data_to_hash = f"{influencer_id}:{url}:{timestamp}"
+                    post_id = hashlib.md5(data_to_hash.encode()).hexdigest()
+                
+                # Check if post already exists in database
+                existing_post = SocialPost.query.filter_by(
+                    platform=platform,
+                    post_id=post_id
+                ).first()
+                
+                # Parse timestamp to datetime object
+                posted_at = None
+                if 'timestamp' in post_data and post_data['timestamp']:
+                    try:
+                        timestamp = post_data['timestamp']
+                        # Handle different timestamp formats
+                        if isinstance(timestamp, datetime):
+                            posted_at = timestamp
+                        elif isinstance(timestamp, str):
+                            # Try different formats based on platform
+                            try:
+                                # ISO format (common for API responses): 2023-04-14T15:30:45Z
+                                posted_at = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                            except ValueError:
+                                try:
+                                    # Facebook/Instagram format: 2023-04-14T15:30:45+0000
+                                    posted_at = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S%z')
+                                except ValueError:
+                                    try:
+                                        # Unix timestamp (common for TikTok)
+                                        posted_at = datetime.fromtimestamp(int(timestamp))
+                                    except ValueError:
+                                        logger.warning(f"Could not parse timestamp: {timestamp}")
+                        elif isinstance(timestamp, (int, float)):
+                            # Unix timestamp
+                            posted_at = datetime.fromtimestamp(timestamp)
+                    except Exception as e:
+                        logger.warning(f"Error parsing post timestamp: {str(e)}")
+                
+                # Default to current time if we couldn't parse the timestamp
+                if not posted_at:
+                    posted_at = datetime.utcnow()
+                
+                # Determine content type based on media_type field
+                content_type = post_data.get('media_type', '').lower()
+                if content_type == '':
+                    # Try to infer from other data
+                    if 'video' in post_data.get('url', '').lower():
+                        content_type = 'video'
+                    elif 'photo' in post_data.get('url', '').lower() or 'image' in post_data.get('url', '').lower():
+                        content_type = 'image'
+                    else:
+                        content_type = 'unknown'
+                
+                # Calculate engagement rate for this post
+                engagement_rate = 0.0
+                total_engagement = (
+                    post_data.get('likes', 0) + 
+                    post_data.get('comments', 0) + 
+                    post_data.get('shares', 0)
+                )
+                
+                # Fetch the influencer to get follower count
+                influencer = Influencer.query.get(influencer_id)
+                if influencer and influencer.followers_count > 0:
+                    engagement_rate = (total_engagement / influencer.followers_count) * 100
+                
+                # Get the data with fallbacks for missing fields
+                content = post_data.get('caption', '')
+                post_url = post_data.get('url', '')
+                media_url = post_data.get('thumbnail', '')
+                
+                if existing_post:
+                    # Update existing post
+                    existing_post.content = content
+                    existing_post.post_url = post_url
+                    existing_post.media_url = media_url
+                    existing_post.posted_at = posted_at
+                    existing_post.content_type = content_type
+                    existing_post.likes_count = post_data.get('likes', 0)
+                    existing_post.comments_count = post_data.get('comments', 0)
+                    existing_post.shares_count = post_data.get('shares', 0)
+                    existing_post.views_count = post_data.get('views', 0)
+                    existing_post.engagement_rate = engagement_rate
+                    existing_post.updated_at = datetime.utcnow()
+                    logger.info(f"Updated existing post {post_id} for influencer {influencer_id}")
+                else:
+                    # Create new post
+                    new_post = SocialPost(
+                        platform=platform,
+                        post_id=post_id,
+                        influencer_id=influencer_id,
+                        content=content,
+                        post_url=post_url,
+                        media_url=media_url,
+                        posted_at=posted_at,
+                        content_type=content_type,
+                        likes_count=post_data.get('likes', 0),
+                        comments_count=post_data.get('comments', 0),
+                        shares_count=post_data.get('shares', 0),
+                        views_count=post_data.get('views', 0),
+                        engagement_rate=engagement_rate
+                    )
+                    db.session.add(new_post)
+                    posts_saved += 1
+                    logger.info(f"Created new post {post_id} for influencer {influencer_id}")
+            
+            # Commit the session to save all posts at once
+            db.session.commit()
+            logger.info(f"Successfully saved {posts_saved} new posts for influencer {influencer_id}")
+            return posts_saved
+            
+        except Exception as e:
+            logger.error(f"Error saving posts for influencer {influencer_id}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            db.session.rollback()
+            return 0
+    
+    @staticmethod
+    def fetch_influencer_recent_posts(influencer_id, days=7, limit=None):
+        """
+        Fetch recent posts for an influencer from the database.
+        
+        Args:
+            influencer_id (int): The ID of the influencer
+            days (int): Number of days to look back (default: 7)
+            limit (int, optional): Maximum number of posts to return
+            
+        Returns:
+            list: List of SocialPost objects
+        """
+        from app.models.social_media import SocialPost
+        
+        try:
+            # Get posts from the last N days
+            start_date = datetime.utcnow() - timedelta(days=days)
+            
+            # Query posts for this influencer in the date range
+            query = SocialPost.query.filter(
+                SocialPost.influencer_id == influencer_id,
+                SocialPost.posted_at >= start_date
+            ).order_by(SocialPost.posted_at.desc())
+            
+            # Apply limit if specified
+            if limit:
+                query = query.limit(limit)
+                
+            posts = query.all()
+            logger.info(f"Fetched {len(posts)} recent posts for influencer {influencer_id}")
+            return posts
+            
+        except Exception as e:
+            logger.error(f"Error fetching recent posts for influencer {influencer_id}: {str(e)}")
+            return []
+            
+    @staticmethod
+    def fetch_influencer_posts_by_platform(platform, days=7, limit=None):
+        """
+        Fetch recent posts for all influencers of a specific platform.
+        
+        Args:
+            platform (str): Social media platform (instagram, tiktok, facebook)
+            days (int): Number of days to look back (default: 7)
+            limit (int, optional): Maximum number of posts to return
+            
+        Returns:
+            list: List of SocialPost objects
+        """
+        from app.models.social_media import SocialPost
+        
+        try:
+            # Get posts from the last N days
+            start_date = datetime.utcnow() - timedelta(days=days)
+            
+            # Query posts for this platform in the date range
+            query = SocialPost.query.filter(
+                SocialPost.platform == platform,
+                SocialPost.posted_at >= start_date
+            ).order_by(SocialPost.posted_at.desc())
+            
+            # Apply limit if specified
+            if limit:
+                query = query.limit(limit)
+                
+            posts = query.all()
+            logger.info(f"Fetched {len(posts)} recent posts for platform {platform}")
+            return posts
+            
+        except Exception as e:
+            logger.error(f"Error fetching recent posts for platform {platform}: {str(e)}")
+            return []
     
     @staticmethod
     def find_social_media_id(platform, username, user_id=None):

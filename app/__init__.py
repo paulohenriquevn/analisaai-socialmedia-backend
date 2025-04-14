@@ -73,5 +73,19 @@ def create_app(config_name=None):
                     app.logger.warning(f"Could not download NLTK resource {resource}: {str(e)}")
         except ImportError:
             app.logger.warning("NLTK not installed. Sentiment analysis will use fallback methods.")
+        
+        # Start task queue worker threads
+        try:
+            from app.services import task_queue_service
+            task_queue_service.start_workers()
+            app.logger.info(f"Started {task_queue_service.NUM_WORKERS} task queue worker threads")
+            
+            # Register a function to stop workers when the app context tears down
+            @app.teardown_appcontext
+            def stop_task_workers(exception=None):
+                task_queue_service.stop_workers()
+                app.logger.info("Stopped task queue worker threads")
+        except Exception as e:
+            app.logger.error(f"Error starting task queue workers: {str(e)}")
     
     return app

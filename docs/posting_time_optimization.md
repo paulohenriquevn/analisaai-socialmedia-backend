@@ -4,6 +4,34 @@
 
 O recurso de Otimização de Horários para Postagem permite aos usuários identificar os melhores momentos para publicar conteúdo em redes sociais, visando maximizar o alcance e engajamento. O sistema analisa o histórico de desempenho de posts anteriores, identifica padrões e fornece recomendações personalizadas.
 
+## Coleta de Dados de Posts
+
+Para permitir análises precisas, o sistema realiza coleta automática de posts dos influenciadores, armazenando:
+
+- Data e hora da publicação (em UTC)
+- Métricas de engajamento (curtidas, comentários, compartilhamentos)
+- Tipo de conteúdo (imagem, vídeo, carrossel, etc.)
+- Plataforma (Instagram, TikTok, Facebook)
+
+Essa coleta ocorre através de:
+
+1. **Coleta automática** ao atualizar perfis de influenciadores
+2. **Script em lote** executado conforme agendamento para manter dados atualizados
+3. **Acionamento manual** da coleta de posts via API
+
+Os dados de posts são essenciais para análises precisas de horários de publicação e podem ser obtidos a partir dos seguintes endpoints:
+
+```
+POST /api/social-media/influencer/<influencer_id>/refresh
+POST /api/social-media/influencer/<influencer_id>/fetch-posts
+```
+
+Também é possível usar o script para coleta em lote:
+
+```bash
+python scripts/fetch_influencer_posts.py [--platform instagram|tiktok|facebook] [--limit 10]
+```
+
 ## Recursos Principais
 
 - **Análise de Engajamento por Horário**: Identifica padrões de engajamento em diferentes horários do dia

@@ -104,6 +104,11 @@ class ReachService:
         This method tries to use official Instagram API first, and falls back to 
         estimates based on available data if API access is not available.
         """
+        # Get the influencer first
+        influencer = Influencer.query.get(influencer_id)
+        if not influencer:
+            logger.error(f"Influencer with ID {influencer_id} not found")
+            return None
         try:
             # Try to use official API if we have user_id and tokens
             if user_id:
@@ -279,6 +284,11 @@ class ReachService:
         """
         Fetch reach metrics from Facebook API or estimate them.
         """
+        # Get the influencer first
+        influencer = Influencer.query.get(influencer_id)
+        if not influencer:
+            logger.error(f"Influencer with ID {influencer_id} not found")
+            return None
         try:
             # Try to use official API if we have user_id and tokens
             if user_id:
@@ -337,6 +347,11 @@ class ReachService:
         """
         Fetch reach metrics from TikTok API or estimate them.
         """
+        # Get the influencer first
+        influencer = Influencer.query.get(influencer_id)
+        if not influencer:
+            logger.error(f"Influencer with ID {influencer_id} not found")
+            return None
         try:
             # Try to use official API if we have user_id and tokens
             if user_id:

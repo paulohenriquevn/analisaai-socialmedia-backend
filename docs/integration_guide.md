@@ -166,3 +166,99 @@ Common issues users may encounter:
 - [Facebook Developer Portal](https://developers.facebook.com/)
 - [TikTok for Developers](https://developers.tiktok.com/)
 - [OAuth 2.0 Specification](https://oauth.net/2/)
+
+## Social Media Post Management
+
+The AnalisaAI platform now supports fetching and storing social media posts for influencers, which enables more accurate metrics calculation and historical data analysis.
+
+### Automatic Post Collection
+
+When an influencer profile is fetched via the API or manually updated, the system will:
+
+1. Fetch the most recent posts (typically the last 5-25 posts, depending on the platform)
+2. Store these posts in the database with engagement metrics
+3. Use this data to calculate more accurate analytics metrics
+
+### Post Fetching API Endpoints
+
+#### Refresh Influencer Data (including posts)
+
+Fetch fresh data for an influencer, including their recent posts:
+
+```
+POST /api/social-media/influencer/<influencer_id>/refresh
+```
+
+**Authentication**: Bearer Token (JWT)
+
+**Request Body (optional)**:
+```json
+{
+  "fetch_posts": true,
+  "force_fetch_posts": false
+}
+```
+
+Parameters:
+- `fetch_posts`: Whether to fetch posts (default: true)
+- `force_fetch_posts`: Force fetch posts even if we already have recent ones (default: false)
+
+**Response Example (200 OK)**:
+```json
+{
+  "status": "success",
+  "message": "Successfully refreshed data for username",
+  "influencer": {
+    "id": 123,
+    "username": "username",
+    "platform": "instagram",
+    "followers_count": 10000,
+    "engagement_rate": 3.5,
+    "posts_count": 547,
+    "updated_at": "2025-04-14T12:30:45Z"
+  },
+  "posts": {
+    "fetched": 5,
+    "total_recent": 12
+  }
+}
+```
+
+#### Dedicated Post Fetching Endpoint
+
+To explicitly fetch posts without updating the influencer profile:
+
+```
+POST /api/social-media/influencer/<influencer_id>/fetch-posts
+```
+
+**Authentication**: Bearer Token (JWT)
+
+**Response Example (200 OK)**:
+```json
+{
+  "status": "success",
+  "message": "Successfully fetched posts for username",
+  "posts_fetched": 5
+}
+```
+
+### Batch Post Fetching Script
+
+For bulk operations or scheduled post fetching, use the included script:
+
+```bash
+python scripts/fetch_influencer_posts.py [--platform instagram|tiktok|facebook] [--limit 10]
+```
+
+This script can be configured to run as a scheduled task (cron job) to keep the post data up-to-date.
+
+### Benefits of Post Data Collection
+
+Storing post data provides several advantages:
+
+1. **More Accurate Metrics**: Engagement rates and other metrics are calculated from actual post data
+2. **Historical Trends**: Track performance over time with consistent historical data
+3. **Posting Time Analysis**: Determine optimal posting times based on engagement patterns
+4. **Content Type Analysis**: Compare performance of different content types (image, video, etc.)
+5. **Topic Analysis**: Identify topics and themes that resonate with the audience

@@ -9,6 +9,8 @@ from app.extensions import db
 from app.models.influencer import Influencer, Category, InfluencerMetric
 from app.api.social_media import bp
 from app.services.engagement_service import EngagementService
+from app.services.social_media_service import SocialMediaService
+from app.services.apify_service import ApifyService
 
 logger = logging.getLogger(__name__)
 
@@ -271,3 +273,291 @@ def update_influencer(influencer_id):
         response["influencer"]["relevance_score"] = influencer.relevance_score
     
     return jsonify(response)
+
+
+@bp.route('/influencer/<int:influencer_id>/refresh', methods=['POST'])
+@jwt_required()
+def refresh_influencer_data(influencer_id):
+    """
+    Refresh influencer data and fetch recent posts.
+    
+    This endpoint will:
+    1. Fetch the latest influencer profile data from social media
+    2. Save that data to our database
+    3. Fetch and save recent posts
+    4. Return the updated influencer data
+    """
+    user_id = get_jwt_identity()
+    logger.info(f"User {user_id} requested refresh of influencer {influencer_id}")
+    
+    # Check if influencer exists
+    influencer = Influencer.query.get(influencer_id)
+    if not influencer:
+        return jsonify({"error": f"Influencer with ID {influencer_id} not found"}), 404
+    
+    # Get refresh options from request
+    refresh_options = request.json or {}
+    fetch_posts = refresh_options.get('fetch_posts', True)
+    
+    try:
+        # Fetch the latest profile data
+        if influencer.platform == 'instagram':
+            profile_data = ApifyService.fetch_instagram_profile(influencer.username)
+        elif influencer.platform == 'tiktok':
+            profile_data = ApifyService.fetch_tiktok_profile(influencer.username)
+        elif influencer.platform == 'facebook':
+            profile_data = ApifyService.fetch_facebook_profile(influencer.username)
+        else:
+            return jsonify({"error": f"Unsupported platform: {influencer.platform}"}), 400
+        
+        if not profile_data or 'error' in profile_data:
+            error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
+            return jsonify({"error": error_msg}), 500
+        
+        # Save the updated data to the database
+        updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+        
+        if not updated_influencer:
+            return jsonify({"error": "Failed to update influencer data"}), 500
+        
+        # If fetch_posts is True and we don't have the last week of posts, get more posts
+        posts_count = 0
+        if fetch_posts:
+            # Check if we have recent posts
+            recent_posts = SocialMediaService.fetch_influencer_recent_posts(influencer_id, days=7)
+            
+            # If we have fewer posts than expected or post fetching is explicitly requested
+            if len(recent_posts) < 5 or refresh_options.get('force_fetch_posts', False):
+                # Get more posts from the API
+                if 'recent_media' in profile_data and profile_data['recent_media']:
+                    posts_count = SocialMediaService.save_recent_posts(
+                        influencer_id, 
+                        profile_data['recent_media'], 
+                        influencer.platform
+                    )
+        
+        # Prepare response data
+        response_data = {
+            "status": "success",
+            "message": f"Successfully refreshed data for {influencer.username}",
+            "influencer": {
+                "id": updated_influencer.id,
+                "username": updated_influencer.username,
+                "platform": updated_influencer.platform,
+                "followers_count": updated_influencer.followers_count,
+                "engagement_rate": updated_influencer.engagement_rate,
+                "social_score": updated_influencer.social_score,
+                "posts_count": updated_influencer.posts_count,
+                "updated_at": updated_influencer.updated_at.isoformat() if updated_influencer.updated_at else None
+            },
+            "posts": {
+                "fetched": posts_count,
+                "total_recent": len(recent_posts) if 'recent_posts' in locals() else 0
+            }
+        }
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        logger.error(f"Error refreshing influencer {influencer_id}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+@bp.route('/influencer/<int:influencer_id>/fetch-posts', methods=['POST'])
+@jwt_required()
+def fetch_posts(influencer_id):
+    """
+    Fetch and save recent posts for an influencer.
+    """
+    user_id = get_jwt_identity()
+    logger.info(f"User {user_id} requested post fetch for influencer {influencer_id}")
+    
+    # Check if influencer exists
+    influencer = Influencer.query.get(influencer_id)
+    if not influencer:
+        return jsonify({"error": f"Influencer with ID {influencer_id} not found"}), 404
+    
+    try:
+        # Fetch the latest profile data to get recent posts
+        if influencer.platform == 'instagram':
+            profile_data = ApifyService.fetch_instagram_profile(influencer.username)
+        elif influencer.platform == 'tiktok':
+            profile_data = ApifyService.fetch_tiktok_profile(influencer.username)
+        elif influencer.platform == 'facebook':
+            profile_data = ApifyService.fetch_facebook_profile(influencer.username)
+        else:
+            return jsonify({"error": f"Unsupported platform: {influencer.platform}"}), 400
+        
+        if not profile_data or 'error' in profile_data:
+            error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
+            return jsonify({"error": error_msg}), 500
+        
+        # Extract and save recent posts
+        posts_count = 0
+        if 'recent_media' in profile_data and profile_data['recent_media']:
+            posts_count = SocialMediaService.save_recent_posts(
+                influencer_id, 
+                profile_data['recent_media'], 
+                influencer.platform
+            )
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully fetched posts for {influencer.username}",
+            "posts_fetched": posts_count
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error fetching posts for influencer {influencer_id}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+@bp.route('/fetch-posts-for-all', methods=['POST'])
+@jwt_required()
+def fetch_posts_for_all():
+    """
+    Fetch and save recent posts for all influencers or a filtered subset.
+    
+    This endpoint allows batch fetching posts for multiple influencers.
+    You can filter by platform and limit the number of influencers processed.
+    """
+    user_id = get_jwt_identity()
+    logger.info(f"User {user_id} requested batch post fetch for influencers")
+    
+    # Get filter parameters from request
+    data = request.json or {}
+    platform = data.get('platform', None)
+    limit = data.get('limit', None)
+    days_history = data.get('days', 7)  # Default to 7 days of post history
+    
+    try:
+        # Build query to get influencers
+        query = Influencer.query
+        
+        # Filter by platform if specified
+        if platform:
+            query = query.filter_by(platform=platform)
+        
+        # Order by last updated (oldest first)
+        query = query.order_by(Influencer.updated_at.asc())
+        
+        # Apply limit if specified
+        if limit and isinstance(limit, int) and limit > 0:
+            query = query.limit(limit)
+            
+        # Get the influencers
+        influencers = query.all()
+        
+        if not influencers:
+            return jsonify({
+                "status": "warning",
+                "message": "No influencers found matching the criteria"
+            }), 200
+            
+        logger.info(f"Found {len(influencers)} influencers to process")
+        
+        # Process each influencer
+        results = {
+            "total": len(influencers),
+            "successful": 0,
+            "failed": 0,
+            "details": []
+        }
+        
+        for influencer in influencers:
+            try:
+                # Fetch the profile data to get recent posts
+                if influencer.platform == 'instagram':
+                    profile_data = ApifyService.fetch_instagram_profile(influencer.username)
+                elif influencer.platform == 'tiktok':
+                    profile_data = ApifyService.fetch_tiktok_profile(influencer.username)
+                elif influencer.platform == 'facebook':
+                    profile_data = ApifyService.fetch_facebook_profile(influencer.username)
+                else:
+                    results["details"].append({
+                        "influencer_id": influencer.id,
+                        "username": influencer.username,
+                        "platform": influencer.platform,
+                        "status": "error",
+                        "message": f"Unsupported platform: {influencer.platform}"
+                    })
+                    results["failed"] += 1
+                    continue
+                
+                if not profile_data or 'error' in profile_data:
+                    error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
+                    results["details"].append({
+                        "influencer_id": influencer.id,
+                        "username": influencer.username,
+                        "platform": influencer.platform,
+                        "status": "error",
+                        "message": error_msg
+                    })
+                    results["failed"] += 1
+                    continue
+                
+                # Extract and save recent posts
+                posts_count = 0
+                if 'recent_media' in profile_data and profile_data['recent_media']:
+                    posts_count = SocialMediaService.save_recent_posts(
+                        influencer.id, 
+                        profile_data['recent_media'], 
+                        influencer.platform
+                    )
+                
+                # Update the influencer data too
+                updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+                
+                if posts_count > 0:
+                    results["details"].append({
+                        "influencer_id": influencer.id,
+                        "username": influencer.username,
+                        "platform": influencer.platform,
+                        "status": "success",
+                        "posts_fetched": posts_count
+                    })
+                    results["successful"] += 1
+                else:
+                    results["details"].append({
+                        "influencer_id": influencer.id,
+                        "username": influencer.username,
+                        "platform": influencer.platform,
+                        "status": "warning",
+                        "message": "No posts were found or saved"
+                    })
+                    results["failed"] += 1
+                    
+            except Exception as e:
+                logger.error(f"Error processing influencer {influencer.id}: {str(e)}")
+                results["details"].append({
+                    "influencer_id": influencer.id,
+                    "username": influencer.username,
+                    "platform": influencer.platform,
+                    "status": "error",
+                    "message": str(e)
+                })
+                results["failed"] += 1
+                continue
+                
+        # Return summary of results
+        return jsonify({
+            "status": "success",
+            "message": f"Processed {len(influencers)} influencers: {results['successful']} successful, {results['failed']} failed",
+            "results": results
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in batch fetch posts: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
+        return jsonify({
+            "status": "error",
+            "message": f"An unexpected error occurred: {str(e)}"
+        }), 500
