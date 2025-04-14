@@ -44,7 +44,10 @@ class ApifyService:
             run_input = {
                 "directUrls": [f"https://www.instagram.com/{username}/"],
                 "resultsType": "details",
-                "addParentData": True
+                "addParentData": True,
+                "maxPosts": 30,  # Request more posts to get a full week's worth
+                "searchType": "user",
+                "searchLimit": 1
             }
             
             logger.info(f"Starting Apify run for Instagram profile: {username}")
@@ -108,6 +111,7 @@ class ApifyService:
         logger.info(f"Fetching TikTok profile for username={username} using Apify")
         
         # Clean username
+        original_username = username
         username = username.replace('@', '').strip()
         
         # Get API key from config
@@ -123,17 +127,25 @@ class ApifyService:
             # Initialize the ApifyClient with the API token
             client = ApifyClient(api_key)
             
-            # Prepare the Actor input
+            # Prepare the Actor input - using updated TikTok Scraper
             run_input = {
                 "profiles": [username],
-                "scrapeType": "profile"
+                "resultsPerPage": 30,  # Get more posts to ensure a week's worth
+                "profileScrapeSections": ["videos"],
+                "profileSorting": "latest",
+                "excludePinnedPosts": False,
+                "maxProfilesPerQuery": 1,
+                "shouldDownloadVideos": False,
+                "shouldDownloadCovers": False,
+                "shouldDownloadSubtitles": False,
+                "shouldDownloadSlideshowImages": False
             }
             
             logger.info(f"Starting Apify run for TikTok profile: {username}")
             
             # Run the actor and wait for it to finish
-            # Using TikTok Scraper actor (qhzXbQKch8FfpyG4T)
-            run = client.actor("qhzXbQKch8FfpyG4T").call(run_input=run_input)
+            # Using updated TikTok Scraper actor (OtzYfK1ndEGdwWFKQ)
+            run = client.actor("OtzYfK1ndEGdwWFKQ").call(run_input=run_input)
             
             logger.info(f"Apify run completed with ID: {run['id']}")
             
@@ -150,20 +162,49 @@ class ApifyService:
                     'message': f'No data found for TikTok profile: {username}'
                 }
             
-            # Process the results - extract the profile data
-            profile_data = None
-            for item in items:
-                # Look for user profile info
-                if item.get('uniqueId') == username or item.get('username') == username:
-                    profile_data = item
-                    break
+            # Log the structure of the first item to understand what we're getting
+            if len(items) > 0:
+                logger.info(f"First TikTok item: {type(items[0])}")
+                if isinstance(items[0], dict):
+                    logger.info(f"First item keys: {list(items[0].keys())}")
+                    
+                    # Check if this is a video item vs a profile item
+                    if 'authorMeta' in items[0]:
+                        logger.info("Found author metadata in video item")
+                        author_data = items[0].get('authorMeta', {})
+                        logger.info(f"Author data keys: {list(author_data.keys()) if isinstance(author_data, dict) else 'Not a dict'}")
             
-            if not profile_data:
-                # If we didn't find exact profile match, use the first item
-                profile_data = items[0]
+            # Check if we're getting video items with author metadata
+            if len(items) > 0 and 'authorMeta' in items[0] and isinstance(items[0]['authorMeta'], dict):
+                # First modify the data to include profile info
+                author_meta = items[0]['authorMeta']
+                
+                # Extract videos from all items
+                videos = items.copy()
+                
+                # Create a synthetic profile with author meta and videos
+                profile_data = {
+                    'user': author_meta,
+                    'videos': videos,
+                    'requestedUsername': username  # Add the requested username to ensure we use it
+                }
+            else:
+                # Find profile data in the standard way
+                profile_data = None
+                for item in items:
+                    # Look for user profile info
+                    if item.get('uniqueId') == username or item.get('username') == username:
+                        profile_data = item
+                        break
+                
+                if not profile_data:
+                    # If we didn't find exact profile match, use the first item
+                    profile_data = items[0]
+                    # Add the requested username to ensure we use it
+                    profile_data['requestedUsername'] = username
             
             # Transform Apify data to match our standard format
-            transformed_data = ApifyService._transform_tiktok_data(profile_data)
+            transformed_data = ApifyService._transform_tiktok_data(profile_data, requested_username=username)
             
             return transformed_data
             
@@ -282,7 +323,12 @@ class ApifyService:
         followers = apify_data.get('followersCount', 0)
         posts = apify_data.get('postsCount', 0)
         
-        if 'latestPosts' in apify_data and followers > 0 and len(apify_data['latestPosts']) > 0:
+        # Ensure we have the latestPosts field
+        if 'latestPosts' not in apify_data:
+            apify_data['latestPosts'] = []
+            
+        # Use all available posts for engagement calculation
+        if followers > 0 and len(apify_data['latestPosts']) > 0:
             total_likes = sum(post.get('likesCount', 0) for post in apify_data['latestPosts'])
             total_comments = sum(post.get('commentsCount', 0) for post in apify_data['latestPosts'])
             post_count = len(apify_data['latestPosts'])
@@ -315,7 +361,7 @@ class ApifyService:
         # Add recent media if available
         if 'latestPosts' in apify_data and len(apify_data['latestPosts']) > 0:
             recent_media = []
-            for post in apify_data['latestPosts'][:5]:  # Include only first 5 posts
+            for post in apify_data['latestPosts']:  # Include all available posts
                 recent_media.append({
                     'id': post.get('id'),
                     'caption': post.get('caption', ''),
@@ -336,74 +382,331 @@ class ApifyService:
         return transformed_data
     
     @staticmethod
-    def _transform_tiktok_data(apify_data):
+    def _transform_tiktok_data(apify_data, requested_username=None):
         """
         Transform TikTok data from Apify format to our standard format.
         
         Args:
             apify_data: Raw data from Apify
+            requested_username: The username that was originally requested, takes precedence over extracted usernames
             
         Returns:
             dict: Transformed data in our standard format
         """
+        logger.info(f"Transforming TikTok data: {type(apify_data)}")
+        
+        # Log a sample of the data for debugging
+        if isinstance(apify_data, dict):
+            logger.info(f"TikTok data keys: {list(apify_data.keys())}")
+        elif isinstance(apify_data, list) and len(apify_data) > 0:
+            logger.info(f"TikTok data is a list with {len(apify_data)} items")
+            if isinstance(apify_data[0], dict):
+                logger.info(f"First item keys: {list(apify_data[0].keys())}")
+        
+        # Check if we're dealing with the new format (list of items with user data)
+        if isinstance(apify_data, list):
+            # Find the user profile data (usually first item with "userInfo")
+            user_data = None
+            user_videos = []
+            
+            for item in apify_data:
+                if isinstance(item, dict):
+                    if 'userInfo' in item and isinstance(item['userInfo'], dict) and 'user' in item['userInfo']:
+                        user_data = item['userInfo']['user']
+                    if 'itemList' in item and isinstance(item['itemList'], list):
+                        user_videos.extend(item['itemList'])
+            
+            # If we couldn't find user data, use the first item as a fallback
+            if not user_data and len(apify_data) > 0 and isinstance(apify_data[0], dict):
+                if 'author' in apify_data[0]:
+                    user_data = apify_data[0]['author']
+                elif 'userInfo' in apify_data[0]:
+                    # Try to extract nested data
+                    user_info = apify_data[0]['userInfo']
+                    if isinstance(user_info, dict) and 'user' in user_info:
+                        user_data = user_info['user']
+                    
+            # If we still couldn't find videos, check if the items themselves are videos
+            if not user_videos:
+                for item in apify_data:
+                    if isinstance(item, dict) and 'id' in item and 'desc' in item:  # Looks like a video
+                        user_videos.append(item)
+                        
+            # Now use the extracted data
+            apify_data = {
+                'user': user_data or {},  # Ensure user_data is not None
+                'videos': user_videos
+            }
+        
+        # Extract user data (handling both old and new format)
+        user_data = apify_data.get('user', apify_data) or {}
+        videos = apify_data.get('videos', [])
+        if not videos and isinstance(apify_data, dict) and 'itemList' in apify_data:
+            videos = apify_data['itemList']
+            
         # Calculate engagement rate if possible
         engagement_rate = 0.0
-        followers = apify_data.get('followerCount', 0)
+        followers = user_data.get('followerCount', 0)
+        if not followers and 'stats' in user_data and isinstance(user_data['stats'], dict):
+            followers = user_data['stats'].get('followerCount', 0)
         
-        if 'videos' in apify_data and followers > 0 and len(apify_data['videos']) > 0:
-            total_likes = sum(video.get('likeCount', 0) for video in apify_data['videos'])
-            total_comments = sum(video.get('commentCount', 0) for video in apify_data['videos'])
-            total_shares = sum(video.get('shareCount', 0) for video in apify_data['videos'])
-            video_count = len(apify_data['videos'])
+        if videos and followers > 0:
+            # Handle different field names in the new format
+            total_likes = 0
+            total_comments = 0
+            total_shares = 0
+            
+            for video in videos:
+                if not isinstance(video, dict):
+                    continue
+                    
+                # Try all possible field names for different API versions
+                like_count = 0
+                if 'likeCount' in video:
+                    like_count = video['likeCount']
+                elif 'stats' in video and isinstance(video['stats'], dict):
+                    like_count = video['stats'].get('diggCount', 0) or video['stats'].get('likeCount', 0)
+                
+                comment_count = 0
+                if 'commentCount' in video:
+                    comment_count = video['commentCount']
+                elif 'stats' in video and isinstance(video['stats'], dict):
+                    comment_count = video['stats'].get('commentCount', 0)
+                
+                share_count = 0
+                if 'shareCount' in video:
+                    share_count = video['shareCount']
+                elif 'stats' in video and isinstance(video['stats'], dict):
+                    share_count = video['stats'].get('shareCount', 0)
+                
+                total_likes += like_count
+                total_comments += comment_count
+                total_shares += share_count
+            
+            video_count = len(videos)
             
             if video_count > 0 and followers > 0:
                 engagement_rate = ((total_likes + total_comments + total_shares) / video_count) / followers * 100
         
+        # First check if we have a requested username - this takes precedence
+        username = ''
+        if requested_username:
+            username = requested_username
+            logger.info(f"Using requested username: {username}")
+        else:
+            # Check if the requested username is stored in the data
+            if isinstance(apify_data, dict) and 'requestedUsername' in apify_data:
+                username = apify_data['requestedUsername']
+                logger.info(f"Using requestedUsername from data: {username}")
+            else:
+                # Fall back to extracted usernames from various fields
+                if 'username' in user_data:
+                    username = user_data['username']
+                elif 'uniqueId' in user_data:
+                    username = user_data['uniqueId']
+                elif 'nickname' in user_data:
+                    username = user_data['nickname']
+                
+                # If we still don't have a username, try to find an identifier
+                if not username and 'id' in user_data:
+                    username = f"user_{user_data['id']}"
+                
+                # Ensure we have a valid username
+                if not username:
+                    # Generate a random username as a last resort
+                    import random
+                    import string
+                    username = 'tiktok_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+                    logger.warning(f"Could not find username in TikTok data, generated random username: {username}")
+        
+        nickname = ''
+        if 'nickname' in user_data:
+            nickname = user_data['nickname']
+        elif 'fullName' in user_data:
+            nickname = user_data['fullName']
+        else:
+            nickname = username  # Fall back to username
+        
+        bio = ''
+        if 'signature' in user_data:
+            bio = user_data['signature']
+        elif 'biography' in user_data:
+            bio = user_data['biography']
+        elif 'bio' in user_data:
+            bio = user_data['bio']
+        
+        profile_image = ''
+        for img_field in ['avatarThumb', 'avatarMedium', 'avatarLarger', 'profileImage']:
+            if img_field in user_data and user_data[img_field]:
+                profile_image = user_data[img_field]
+                break
+        
+        # Stats might be nested or directly on the user object
+        stats = user_data.get('stats', {}) if isinstance(user_data.get('stats'), dict) else user_data
+        
+        # Get followers count
+        if 'followerCount' in stats:
+            followers = stats['followerCount']
+        
+        # Get following count
+        following = 0
+        if 'followingCount' in stats:
+            following = stats['followingCount']
+        elif 'followingCount' in user_data:
+            following = user_data['followingCount']
+        
+        # Get posts count
+        posts_count = 0
+        if 'videoCount' in stats:
+            posts_count = stats['videoCount']
+        elif 'videoCount' in user_data:
+            posts_count = user_data['videoCount']
+        else:
+            posts_count = len(videos)  # Fallback to video count
+        
+        # Get likes count
+        likes_count = 0
+        if 'heartCount' in stats:
+            likes_count = stats['heartCount']
+        elif 'diggCount' in stats:
+            likes_count = stats['diggCount']
+        elif 'heartCount' in user_data:
+            likes_count = user_data['heartCount']
+        
         # Transform to our standard format
         transformed_data = {
-            'platform': 'tiktok',
-            'username': apify_data.get('username'),
-            'full_name': apify_data.get('nickname', apify_data.get('username')),
-            'profile_url': f"https://tiktok.com/@{apify_data.get('username')}",
-            'profile_image': apify_data.get('avatarThumb') or apify_data.get('avatarMedium'),
-            'bio': apify_data.get('signature', ''),
+            'platform': 'tiktok',  # Always set platform to 'tiktok'
+            'username': username,  # Ensure username is never empty
+            'full_name': nickname,
+            'profile_url': f"https://tiktok.com/@{username}",
+            'profile_image': profile_image,
+            'bio': bio,
             'followers_count': followers,
-            'following_count': apify_data.get('followingCount', 0),
-            'posts_count': apify_data.get('videoCount', 0),
+            'following_count': following,
+            'posts_count': posts_count,
             'engagement_rate': engagement_rate,
-            'is_verified': apify_data.get('verified', False),
+            'is_verified': bool(user_data.get('verified', False) or user_data.get('isVerified', False)),
             'metrics': {
                 'followers': followers,
                 'engagement': engagement_rate,
-                'posts': apify_data.get('videoCount', 0),
-                'likes': apify_data.get('heartCount', 0)
+                'posts': posts_count,
+                'likes': likes_count
             }
         }
         
         # Add recent videos if available
-        if 'videos' in apify_data and len(apify_data['videos']) > 0:
+        if videos:
             recent_media = []
-            for video in apify_data['videos'][:5]:  # Include only first 5 videos
+            for video in videos:
+                if not isinstance(video, dict):
+                    continue
+                    
+                # Try to extract video ID
+                video_id = ''
+                if 'id' in video:
+                    video_id = str(video['id'])
+                elif 'videoId' in video:
+                    video_id = str(video['videoId'])
+                elif 'itemId' in video:
+                    video_id = str(video['itemId'])
+                else:
+                    # Generate a random ID as a last resort
+                    import random
+                    video_id = f"video_{random.randint(10000, 99999)}"
+                
+                # Get video caption/description
+                caption = ''
+                if 'description' in video:
+                    caption = video['description']
+                elif 'desc' in video:
+                    caption = video['desc']
+                elif 'text' in video:
+                    caption = video['text']
+                
+                # Get video URL
+                url = ''
+                if 'webVideoUrl' in video:
+                    url = video['webVideoUrl']
+                elif 'shareUrl' in video:
+                    url = video['shareUrl']
+                elif 'video' in video and isinstance(video['video'], dict) and 'playAddr' in video['video']:
+                    url = video['video']['playAddr']
+                else:
+                    # Construct URL from username and video ID
+                    url = f"https://www.tiktok.com/@{username}/video/{video_id}"
+                
+                # Try to get thumbnail from various possible fields
+                thumbnail = None
+                if 'covers' in video:
+                    if isinstance(video['covers'], list) and video['covers']:
+                        thumbnail = video['covers'][0]
+                    elif isinstance(video['covers'], str):
+                        thumbnail = video['covers']
+                elif 'thumbnailUrl' in video:
+                    thumbnail = video['thumbnailUrl']
+                elif 'thumbnail' in video:
+                    thumbnail = video['thumbnail']
+                elif 'cover' in video:
+                    thumbnail = video['cover']
+                
+                # Get timestamp, which could be in various formats
+                timestamp = None
+                if 'createTime' in video:
+                    timestamp = video['createTime']
+                elif 'createTimeISO' in video:
+                    timestamp = video['createTimeISO']
+                elif 'timestamp' in video:
+                    timestamp = video['timestamp']
+                
+                # Get engagement statistics
+                stats = video.get('stats', {}) if isinstance(video.get('stats'), dict) else video
+                
+                likes = 0
+                if 'likeCount' in stats:
+                    likes = stats['likeCount']
+                elif 'diggCount' in stats:
+                    likes = stats['diggCount']
+                
+                comments = 0
+                if 'commentCount' in stats:
+                    comments = stats['commentCount']
+                
+                shares = 0
+                if 'shareCount' in stats:
+                    shares = stats['shareCount']
+                
+                views = 0
+                if 'playCount' in stats:
+                    views = stats['playCount']
+                elif 'viewCount' in stats:
+                    views = stats['viewCount']
+                
+                # Add to recent media list
                 recent_media.append({
-                    'id': video.get('id'),
-                    'caption': video.get('description', ''),
+                    'id': video_id,
+                    'caption': caption,
                     'media_type': 'VIDEO',
-                    'url': video.get('webVideoUrl'),
-                    'thumbnail': video.get('covers', [None])[0] if video.get('covers') else None,
-                    'timestamp': video.get('createTime'),
-                    'likes': video.get('likeCount', 0),
-                    'comments': video.get('commentCount', 0),
-                    'shares': video.get('shareCount', 0),
-                    'views': video.get('playCount', 0)
+                    'url': url,
+                    'thumbnail': thumbnail,
+                    'timestamp': timestamp,
+                    'likes': likes,
+                    'comments': comments,
+                    'shares': shares,
+                    'views': views
                 })
             
-            transformed_data['recent_media'] = recent_media
-            
-            # Update metrics with additional data
-            transformed_data['metrics']['likes'] = sum(video.get('likes', 0) for video in recent_media)
-            transformed_data['metrics']['comments'] = sum(video.get('comments', 0) for video in recent_media)
-            transformed_data['metrics']['shares'] = sum(video.get('shares', 0) for video in recent_media)
-            transformed_data['metrics']['views'] = sum(video.get('views', 0) for video in recent_media)
+            # Add recent media to transformed data
+            if recent_media:
+                transformed_data['recent_media'] = recent_media
+                
+                # Update metrics with totals
+                transformed_data['metrics']['likes'] = sum(post.get('likes', 0) for post in recent_media)
+                transformed_data['metrics']['comments'] = sum(post.get('comments', 0) for post in recent_media)
+                transformed_data['metrics']['shares'] = sum(post.get('shares', 0) for post in recent_media)
+                transformed_data['metrics']['views'] = sum(post.get('views', 0) for post in recent_media)
+        
+        # Log the transformed data structure
+        logger.info(f"Transformed TikTok data: username={transformed_data['username']}, platform={transformed_data['platform']}")
         
         return transformed_data
         
@@ -463,7 +766,7 @@ class ApifyService:
         # Add recent posts if available
         if recent_posts:
             recent_media = []
-            for post in recent_posts[:5]:  # Include only first 5 posts
+            for post in recent_posts:  # Include all available posts
                 recent_media.append({
                     'id': post.get('postId') or post.get('url', '').split('/')[-1],
                     'caption': post.get('text', ''),
