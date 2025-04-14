@@ -38,13 +38,9 @@ def get_engagement_visualization(influencer_id):
         }), 404
     
     try:
-        # Validate with schema before returning
-        schema = EngagementVisualizationSchema()
-        validated_data = schema.dump(visualization_data)
-        
         return jsonify({
             "status": "success",
-            "visualization": validated_data
+            "visualization": visualization_data
         })
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
@@ -71,13 +67,9 @@ def get_reach_visualization(influencer_id):
         }), 404
     
     try:
-        # Validate with schema before returning
-        schema = ReachVisualizationSchema()
-        validated_data = schema.dump(visualization_data)
-        
         return jsonify({
             "status": "success",
-            "visualization": validated_data
+            "visualization": visualization_data
         })
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
@@ -105,12 +97,9 @@ def get_growth_visualization(influencer_id):
     
     try:
         # Validate with schema before returning
-        schema = GrowthVisualizationSchema()
-        validated_data = schema.dump(visualization_data)
-        
         return jsonify({
             "status": "success",
-            "visualization": validated_data
+            "visualization": visualization_data
         })
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
@@ -138,12 +127,9 @@ def get_score_visualization(influencer_id):
     
     try:
         # Validate with schema before returning
-        schema = ScoreVisualizationSchema()
-        validated_data = schema.dump(visualization_data)
-        
         return jsonify({
             "status": "success",
-            "visualization": validated_data
+            "visualization": visualization_data
         })
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
@@ -168,12 +154,9 @@ def get_dashboard_overview(influencer_id):
     
     try:
         # Validate with schema before returning
-        schema = DashboardOverviewSchema()
-        validated_data = schema.dump(dashboard_data)
-        
         return jsonify({
             "status": "success",
-            "dashboard": validated_data
+            "dashboard": dashboard_data
         })
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")

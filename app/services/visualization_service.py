@@ -642,7 +642,6 @@ class VisualizationService:
         
         return {
             "direction": direction,
-            "change_percent": change_percent,
             "slope": slope
         }
     

@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run FastAPI (Uvicorn)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [
+                "-m",
+                "uvicorn",
+                "run:app",
+                "--reload",
+                "--port",
+                "5000"
+            ],
+            "cwd": "${workspaceFolder}",
+            "python": "/home/paulo/Projetos/analisaai-socialmedia/analisaai-socialmedia-backend/venv/bin/python"
+        }
+    ]
+}
