@@ -15,6 +15,20 @@ bp = Blueprint('analytics', __name__)
 # Import and register sub-routes
 from app.api.analytics.routes.sentiment import bp as sentiment_bp
 from app.api.analytics.routes.posting_time import bp as posting_time_bp
+from app.api.analytics.routes.engagement import bp as engagement_bp
+from app.api.analytics.routes.reach import bp as reach_bp
+from app.api.analytics.routes.growth import bp as growth_bp
+from app.api.analytics.routes.score import bp as score_bp
+from app.api.analytics.routes.visualization import bp as visualization_bp
+
+# Register blueprints
+bp.register_blueprint(sentiment_bp, url_prefix='/sentiment')
+bp.register_blueprint(posting_time_bp, url_prefix='/posting-time')
+bp.register_blueprint(engagement_bp, url_prefix='/engagement')
+bp.register_blueprint(reach_bp, url_prefix='/reach')
+bp.register_blueprint(growth_bp, url_prefix='/growth')
+bp.register_blueprint(score_bp, url_prefix='/score')
+bp.register_blueprint(visualization_bp, url_prefix='/visualization')
 
 @bp.route('/influencer/<int:influencer_id>/growth', methods=['GET'])
 @jwt_required()

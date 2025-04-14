@@ -4,6 +4,7 @@ User-related models.
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
+from app.models.organization import Organization
 
 # Association table for User-Role relationship
 user_roles = db.Table('user_roles',
@@ -33,12 +34,18 @@ class User(db.Model):
     instagram_id = db.Column(db.String(100), unique=True, nullable=True)
     tiktok_id = db.Column(db.String(100), unique=True, nullable=True)
     
+    # Social media usernames
+    facebook_username = db.Column(db.String(100), nullable=True)
+    instagram_username = db.Column(db.String(100), nullable=True)
+    tiktok_username = db.Column(db.String(100), nullable=True)
+    
     # Profile information
     profile_image = db.Column(db.String(500), nullable=True)
     
     # Relationships
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('users', lazy='dynamic'))
     social_tokens = db.relationship('SocialToken', backref='user', lazy='dynamic')
+    organizations = db.relationship('Organization', secondary=organization_users, backref=db.backref('users', lazy='dynamic'))
     
     def set_password(self, password):
         """Set the password hash from a plaintext password."""

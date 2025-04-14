@@ -17,20 +17,24 @@ class Influencer(db.Model):
     username = db.Column(db.String(80), nullable=False)
     full_name = db.Column(db.String(100))
     platform = db.Column(db.String(20), nullable=False)
-    profile_url = db.Column(db.String(255))
-    profile_image = db.Column(db.String(255))
+    profile_url = db.Column(db.String(1024))
+    profile_image = db.Column(db.Text)
     bio = db.Column(db.Text)
     followers_count = db.Column(db.Integer, default=0)
     following_count = db.Column(db.Integer, default=0)
     posts_count = db.Column(db.Integer, default=0)
     engagement_rate = db.Column(db.Float)
     social_score = db.Column(db.Float)
+    relevance_score = db.Column(db.Float, default=0.0)  # Current relevance score (0-100)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     categories = db.relationship('Category', secondary=influencer_categories, backref=db.backref('influencers', lazy='dynamic'))
     metrics = db.relationship('InfluencerMetric', backref='influencer', lazy='dynamic')
+    # Relationship to reach metrics is defined in the InfluencerReach model
+    # Relationship to growth metrics is defined in the InfluencerGrowth model
+    # Relationship to score metrics is defined in the InfluencerScore model
     
     def __repr__(self):
         return f'<Influencer {self.username} ({self.platform})>'

@@ -3,6 +3,8 @@ Organization-related models.
 """
 from datetime import datetime
 from app.extensions import db
+# Import user_organization association table from User model
+# We need to reference it but can't import it directly to avoid circular imports
 
 class Organization(db.Model):
     """Organization model for grouping users and managed influencers."""

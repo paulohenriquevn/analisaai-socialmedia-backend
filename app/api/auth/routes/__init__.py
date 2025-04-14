@@ -141,6 +141,106 @@ def login():
     # Generate tokens
     tokens = generate_tokens(user.id)
     
+    # Start process to sync influencer data and calculate all metrics
+    try:
+        # Import required modules
+        from app.services.social_media_service import SocialMediaService
+        from app.services.engagement_service import EngagementService
+        from app.services.reach_service import ReachService
+        from app.services.growth_service import GrowthService
+        from app.services.score_service import ScoreService
+        from app.models.influencer import Influencer
+        
+        logger.info(f"Starting automatic metrics update on login for user {user.id}")
+        
+        # Get all influencers from the database to sync 
+        # Order by updated_at to prioritize oldest entries
+        influencers = Influencer.query.order_by(Influencer.updated_at.asc()).all()
+        
+        if influencers:
+            logger.info(f"Found {len(influencers)} influencers to update")
+            
+            # Process a limited number of influencers (to avoid long login times)
+            for influencer in influencers[:5]:  # Limit to 5 influencers per login
+                platform = influencer.platform
+                username = influencer.username
+                influencer_id = influencer.id
+                
+                if platform and username:
+                    logger.info(f"Updating metrics for {platform} influencer {username} (ID: {influencer_id})")
+                    
+                    try:
+                        # Step 1: Update profile data from social media APIs
+                        # Use Apify to fetch updated profile data
+                        if platform == 'instagram':
+                            profile_data = SocialMediaService.fetch_instagram_profile(user.id, username)
+                        elif platform == 'facebook':
+                            profile_data = SocialMediaService.fetch_facebook_profile(user.id, username)
+                        elif platform == 'tiktok':
+                            profile_data = SocialMediaService.fetch_tiktok_profile(user.id, username)
+                        else:
+                            logger.warning(f"Unsupported platform: {platform}")
+                            continue
+                            
+                        # Update the influencer data if successful
+                        updated_influencer = None
+                        if profile_data and 'error' not in profile_data:
+                            updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+                            logger.info(f"Successfully synced {platform} data for influencer {username}")
+                        else:
+                            logger.warning(f"Failed to fetch data for {platform} influencer {username}")
+                            # Continue with existing data even if fetch fails
+                            updated_influencer = influencer
+                        
+                        # Step 2: Calculate and store all metrics
+                        if updated_influencer:
+                            try:
+                                # Calculate engagement metrics
+                                logger.info(f"Calculating engagement metrics for influencer {username}")
+                                engagement_metrics = EngagementService.calculate_engagement_metrics(updated_influencer.id)
+                                if engagement_metrics:
+                                    logger.info(f"Successfully calculated engagement metrics for influencer {username}")
+                            except Exception as metric_error:
+                                logger.error(f"Error calculating engagement metrics: {str(metric_error)}")
+                            
+                            try:
+                                # Calculate reach metrics
+                                logger.info(f"Calculating reach metrics for influencer {username}")
+                                reach_metrics = ReachService.calculate_reach_metrics(updated_influencer.id, user.id)
+                                if reach_metrics:
+                                    logger.info(f"Successfully calculated reach metrics for influencer {username}")
+                            except Exception as metric_error:
+                                logger.error(f"Error calculating reach metrics: {str(metric_error)}")
+                            
+                            try:
+                                # Calculate growth metrics
+                                logger.info(f"Calculating growth metrics for influencer {username}")
+                                growth_metrics = GrowthService.calculate_growth_metrics(updated_influencer.id)
+                                if growth_metrics:
+                                    logger.info(f"Successfully calculated growth metrics for influencer {username}")
+                            except Exception as metric_error:
+                                logger.error(f"Error calculating growth metrics: {str(metric_error)}")
+                            
+                            try:
+                                # Calculate relevance score (depends on other metrics being calculated first)
+                                logger.info(f"Calculating relevance score for influencer {username}")
+                                score = ScoreService.calculate_relevance_score(updated_influencer.id)
+                                if score:
+                                    logger.info(f"Successfully calculated relevance score for influencer {username}")
+                            except Exception as metric_error:
+                                logger.error(f"Error calculating relevance score: {str(metric_error)}")
+                            
+                            logger.info(f"Metrics update process completed for influencer {username}")
+                            
+                    except Exception as e:
+                        logger.error(f"Error updating metrics for {platform} influencer {username}: {str(e)}")
+        else:
+            logger.info("No influencers found to update")
+            
+    except Exception as e:
+        logger.error(f"Error performing automatic metrics update: {str(e)}")
+        # Don't block login if update fails
+    
     return jsonify({
         "message": "Login successful",
         "user": {
@@ -169,6 +269,74 @@ def refresh_token():
         identity=user_id
     )
     
+    # Schedule metrics update in background
+    # This is done asynchronously to not block the token refresh
+    try:
+        # Import necessary services
+        from app.services.engagement_service import EngagementService
+        from app.services.reach_service import ReachService
+        from app.services.growth_service import GrowthService
+        from app.services.score_service import ScoreService
+        from app.models.influencer import Influencer
+        import threading
+        
+        # Define a function to run in a separate thread
+        def update_metrics_in_background():
+            try:
+                logger.info(f"Starting metrics update in background during token refresh for user {user_id}")
+                
+                # Get one oldest updated influencer to refresh
+                influencer = Influencer.query.order_by(Influencer.updated_at.asc()).first()
+                
+                if influencer:
+                    influencer_id = influencer.id
+                    username = influencer.username
+                    
+                    logger.info(f"Updating metrics for influencer {username} (ID: {influencer_id})")
+                    
+                    # Calculate all metrics with individual error handling for each step
+                    try:
+                        engagement_metrics = EngagementService.calculate_engagement_metrics(influencer_id)
+                        logger.info(f"Successfully calculated engagement metrics for influencer {username}")
+                    except Exception as e:
+                        logger.error(f"Error calculating engagement metrics: {str(e)}")
+                    
+                    try:
+                        reach_metrics = ReachService.calculate_reach_metrics(influencer_id, user_id)
+                        logger.info(f"Successfully calculated reach metrics for influencer {username}")
+                    except Exception as e:
+                        logger.error(f"Error calculating reach metrics: {str(e)}")
+                    
+                    try:
+                        growth_metrics = GrowthService.calculate_growth_metrics(influencer_id)
+                        logger.info(f"Successfully calculated growth metrics for influencer {username}")
+                    except Exception as e:
+                        logger.error(f"Error calculating growth metrics: {str(e)}")
+                    
+                    # Calculate score last since it depends on other metrics
+                    try:
+                        score = ScoreService.calculate_relevance_score(influencer_id)
+                        logger.info(f"Successfully calculated relevance score for influencer {username}")
+                    except Exception as e:
+                        logger.error(f"Error calculating relevance score: {str(e)}")
+                    
+                    logger.info(f"Completed background metrics update for influencer {username}")
+                else:
+                    logger.info("No influencers found to update")
+                    
+            except Exception as e:
+                logger.error(f"Error in background metrics update: {str(e)}")
+        
+        # Start background thread for metrics update
+        metrics_thread = threading.Thread(target=update_metrics_in_background)
+        metrics_thread.daemon = True  # Thread will exit when main thread exits
+        metrics_thread.start()
+        logger.info("Started background metrics update thread")
+        
+    except Exception as e:
+        logger.error(f"Error starting background metrics update: {str(e)}")
+        # Don't block token refresh if update setup fails
+    
     return jsonify({
         "access_token": access_token
     })
@@ -186,11 +354,13 @@ def get_profile():
         return jsonify({"error": "User not found"}), 404
     
     # Get user's organizations
-    organizations = [{
-        "id": org.id,
-        "name": org.name,
-        "plan": org.plan.name if org.plan else None
-    } for org in user.organizations]
+    organizations = []
+    if hasattr(user, 'organizations'):
+        organizations = [{
+            "id": org.id,
+            "name": org.name,
+            "plan": org.plan.name if hasattr(org, 'plan') and org.plan else None
+        } for org in user.organizations]
     
     return jsonify({
         "user": {
@@ -297,6 +467,35 @@ def facebook_callback():
             save_token(user_id, 'facebook', token)
             logger.info(f"Facebook account connected to user {user_id}")
             
+            # Update user with Facebook username and ID if available
+            user = User.query.get(user_id)
+            if user:
+                update_needed = False
+                facebook_id = facebook_user_info.get('id')
+                if facebook_id and not user.facebook_id:
+                    user.facebook_id = facebook_id
+                    update_needed = True
+                
+                facebook_username = facebook_user_info.get('name')
+                if facebook_username and not user.facebook_username:
+                    user.facebook_username = facebook_username
+                    update_needed = True
+                
+                if update_needed:
+                    db.session.commit()
+                    logger.info(f"Updated user {user_id} with Facebook data: ID={facebook_id}, username={facebook_username}")
+            
+            # Try to fetch full profile with the Apify service
+            try:
+                from app.services.social_media_service import SocialMediaService
+                if facebook_username:
+                    profile_data = SocialMediaService.fetch_facebook_profile(user_id, facebook_username)
+                    if profile_data and 'error' not in profile_data:
+                        SocialMediaService.save_influencer_data(profile_data)
+                        logger.info(f"Successfully fetched and saved Facebook profile data for user {user_id}")
+            except Exception as e:
+                logger.error(f"Error fetching Facebook profile data: {str(e)}")
+            
             # Redirect to frontend with success message
             frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
             return redirect(f"{frontend_url}/settings/connected-accounts?status=success&platform=facebook")
@@ -323,10 +522,21 @@ def facebook_callback():
                 user = User.query.filter_by(email=email).first()
                 if user:
                     logger.info(f"Found existing user by email: {user.id}")
-                    # Update the Facebook ID if it's not set
+                    # Update the Facebook ID and username if not set
+                    update_needed = False
                     if not user.facebook_id:
                         logger.info(f"Updating user {user.id} with Facebook ID: {facebook_id}")
                         user.facebook_id = facebook_id
+                        update_needed = True
+                    
+                    # Store Facebook username if available
+                    facebook_username = facebook_user_info.get('name')
+                    if facebook_username and not user.facebook_username:
+                        user.facebook_username = facebook_username
+                        logger.info(f"Updating user {user.id} with Facebook username: {facebook_username}")
+                        update_needed = True
+                    
+                    if update_needed:
                         db.session.commit()
                 else:
                     logger.info(f"No user found with email: {email}")
@@ -533,6 +743,14 @@ def instagram_callback():
                 # Store profile data for immediate access
                 SocialMediaService.save_influencer_data(profile_data)
                 logger.info(f"Saved Instagram profile data for user {user_id}")
+                
+                # Update user with Instagram username
+                if 'username' in profile_data:
+                    user = User.query.get(user_id)
+                    if user:
+                        user.instagram_username = profile_data['username']
+                        db.session.commit()
+                        logger.info(f"Updated user {user_id} with Instagram username: {profile_data['username']}")
             else:
                 logger.warning(f"Could not verify Instagram business account status for user {user_id}")
                 # We continue anyway since the token was obtained
@@ -682,6 +900,18 @@ def complete_profile():
 def tiktok_auth():
     """Initiate TikTok OAuth flow."""
     user_id = int(get_jwt_identity())
+    
+    # Check if TikTok client is registered
+    if 'tiktok' not in oauth._registry:
+        logger.error("TikTok OAuth client is not registered in the OAuth registry")
+        available_clients = list(oauth._registry.keys())
+        logger.error(f"Available OAuth clients: {available_clients}")
+        return jsonify({
+            "error": "TikTok OAuth not configured",
+            "details": "The TikTok OAuth client is not registered. Check environment variables.",
+            "available_clients": available_clients
+        }), 500
+    
     # Store state for later verification
     session['user_id'] = user_id
     redirect_uri = url_for('api.auth.tiktok_callback', _external=True)
@@ -695,6 +925,14 @@ def tiktok_callback():
     if not user_id:
         return jsonify({"error": "Invalid session"}), 401
     
+    # Check if TikTok client is registered
+    if 'tiktok' not in oauth._registry:
+        logger.error("TikTok OAuth client is not registered in the OAuth registry")
+        return jsonify({
+            "error": "TikTok OAuth not configured",
+            "details": "The TikTok OAuth client is not registered. Check environment variables."
+        }), 500
+    
     # Get token from TikTok
     token = oauth.tiktok.authorize_access_token()
     if not token:
@@ -702,6 +940,47 @@ def tiktok_callback():
     
     # Save token to database
     save_token(user_id, 'tiktok', token)
+    logger.info(f"Saved TikTok token for user {user_id}")
+    
+    # Try to get user info from TikTok API
+    try:
+        # Get basic user info using the token
+        user_info_response = oauth.tiktok.get('https://open.tiktokapis.com/v2/user/info/')
+        tiktok_user_info = user_info_response.json()
+        
+        if 'data' in tiktok_user_info and 'user' in tiktok_user_info['data']:
+            tiktok_user = tiktok_user_info['data']['user']
+            tiktok_username = tiktok_user.get('display_name')
+            tiktok_id = tiktok_user.get('open_id')
+            
+            # Update user with TikTok info
+            user = User.query.get(user_id)
+            if user:
+                update_needed = False
+                if tiktok_id and not user.tiktok_id:
+                    user.tiktok_id = tiktok_id
+                    update_needed = True
+                
+                if tiktok_username and not user.tiktok_username:
+                    user.tiktok_username = tiktok_username
+                    update_needed = True
+                
+                if update_needed:
+                    db.session.commit()
+                    logger.info(f"Updated user {user_id} with TikTok data: ID={tiktok_id}, username={tiktok_username}")
+            
+            # Try to fetch full profile with the Apify service
+            try:
+                from app.services.social_media_service import SocialMediaService
+                if tiktok_username:
+                    profile_data = SocialMediaService.fetch_tiktok_profile(user_id, tiktok_username)
+                    if profile_data and 'error' not in profile_data:
+                        SocialMediaService.save_influencer_data(profile_data)
+                        logger.info(f"Successfully fetched and saved TikTok profile data for user {user_id}")
+            except Exception as e:
+                logger.error(f"Error fetching TikTok profile data: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error getting TikTok user info: {str(e)}")
     
     # Redirect to frontend with success message
     frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:4200')

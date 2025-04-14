@@ -1,0 +1,1569 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-04-14T12:30:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_root",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871861,
+      "created": 1681419871861,
+      "url": "{{ _.BASE_URL }}",
+      "name": "0.0 API Root",
+      "description": "Verificar se a API está funcionando corretamente",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1681419871861,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "wrk_analisaai_social_media",
+      "parentId": null,
+      "modified": 1681419871860,
+      "created": 1681419871860,
+      "name": "AnalisaAI Social Media",
+      "description": "Collection completa e organizada em jornadas da API AnalisaAI Social Media Backend",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "fld_jornada_1",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871861,
+      "created": 1681419871861,
+      "name": "1. Jornada de Onboarding",
+      "description": "Fluxo de registro, autenticação e configuração inicial da conta",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1000000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_auth_status",
+      "parentId": "fld_jornada_1",
+      "modified": 1681419871863,
+      "created": 1681419871863,
+      "url": "{{ _.BASE_URL }}/api/auth/auth-status",
+      "name": "1.1 Verificar Status da Autenticação",
+      "description": "Verificar o status da configuração de autenticação do sistema",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1000100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_auth_register",
+      "parentId": "fld_jornada_1",
+      "modified": 1681419871864,
+      "created": 1681419871864,
+      "url": "{{ _.BASE_URL }}/api/auth/register",
+      "name": "1.2 Registrar Usuário",
+      "description": "Criar uma nova conta de usuário no sistema",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"username\": \"testuser\",\n\t\"email\": \"test@example.com\",\n\t\"password\": \"password123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1000200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_auth_login",
+      "parentId": "fld_jornada_1",
+      "modified": 1681419871865,
+      "created": 1681419871865,
+      "url": "{{ _.BASE_URL }}/api/auth/login",
+      "name": "1.3 Login",
+      "description": "Fazer login com nome de usuário e senha para obter tokens de acesso",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"username\": \"testuser\",\n\t\"password\": \"password123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1000300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_auth_refresh",
+      "parentId": "fld_jornada_1",
+      "modified": 1681419871866,
+      "created": 1681419871866,
+      "url": "{{ _.BASE_URL }}/api/auth/refresh",
+      "name": "1.4 Renovar Token",
+      "description": "Renovar token de acesso usando refresh token para manter a sessão ativa",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.REFRESH_TOKEN }}"
+      },
+      "metaSortKey": -1000400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_auth_profile",
+      "parentId": "fld_jornada_1",
+      "modified": 1681419871867,
+      "created": 1681419871867,
+      "url": "{{ _.BASE_URL }}/api/auth/profile",
+      "name": "1.5 Perfil do Usuário",
+      "description": "Obter informações do perfil do usuário autenticado",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -1000500,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_2",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871862,
+      "created": 1681419871862,
+      "name": "2. Jornada de Conexão de Redes Sociais",
+      "description": "Conectar e gerenciar contas de redes sociais ao perfil do usuário",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -990000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_connect_facebook",
+      "parentId": "fld_jornada_2",
+      "modified": 1681419871869,
+      "created": 1681419871869,
+      "url": "{{ _.BASE_URL }}/api/auth/facebook",
+      "name": "2.1 Conectar Facebook",
+      "description": "Iniciar fluxo OAuth com Facebook para conectar conta",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "action",
+          "value": "connect"
+        },
+        {
+          "name": "user_id",
+          "value": "{% response 'body', 'req_auth_login', 'b64::JC51c2VyLmlk::46b', 'no-history' %}"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -990100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_connect_instagram",
+      "parentId": "fld_jornada_2",
+      "modified": 1681419871870,
+      "created": 1681419871870,
+      "url": "{{ _.BASE_URL }}/api/auth/instagram",
+      "name": "2.2 Conectar Instagram",
+      "description": "Iniciar fluxo OAuth com Instagram para conectar conta",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -990200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_connect_tiktok",
+      "parentId": "fld_jornada_2",
+      "modified": 1681419871871,
+      "created": 1681419871871,
+      "url": "{{ _.BASE_URL }}/api/auth/tiktok",
+      "name": "2.3 Conectar TikTok",
+      "description": "Iniciar fluxo OAuth com TikTok para conectar conta",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -990300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_connect_manual",
+      "parentId": "fld_jornada_2",
+      "modified": 1681419871872,
+      "created": 1681419871872,
+      "url": "{{ _.BASE_URL }}/api/social-media/connect",
+      "name": "2.4 Conectar Rede Social Manualmente",
+      "description": "Cadastrar uma rede social manualmente informando plataforma e username",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"platform\": \"instagram\",\n\t\"username\": \"@testinfluencer\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -990400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_update_influencer",
+      "parentId": "fld_jornada_2",
+      "modified": 1681419871873,
+      "created": 1681419871873,
+      "url": "{{ _.BASE_URL }}/api/social-media/influencer/1",
+      "name": "2.5 Atualizar Dados de Influenciador",
+      "description": "Atualizar dados de um influenciador conectado",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -990500,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_3",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871874,
+      "created": 1681419871874,
+      "name": "3. Jornada de Gerenciamento de Influenciadores",
+      "description": "Operações para gerenciar e buscar influenciadores",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -980000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_influencers_list",
+      "parentId": "fld_jornada_3",
+      "modified": 1681419871875,
+      "created": 1681419871875,
+      "url": "{{ _.BASE_URL }}/api/influencers",
+      "name": "3.1 Listar Influenciadores",
+      "description": "Obter lista paginada de influenciadores",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "per_page",
+          "value": "10"
+        },
+        {
+          "name": "platform",
+          "value": "instagram",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -980100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_influencer_detail",
+      "parentId": "fld_jornada_3",
+      "modified": 1681419871876,
+      "created": 1681419871876,
+      "url": "{{ _.BASE_URL }}/api/influencers/1",
+      "name": "3.2 Detalhes do Influenciador",
+      "description": "Obter detalhes completos de um influenciador específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -980200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_influencer_lookup",
+      "parentId": "fld_jornada_3",
+      "modified": 1681419871877,
+      "created": 1681419871877,
+      "url": "{{ _.BASE_URL }}/api/influencers/lookup",
+      "name": "3.3 Pesquisar Influenciador",
+      "description": "Pesquisar e importar um influenciador pelo username e plataforma",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"username\": \"testinfluencer\",\n\t\"platform\": \"instagram\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -980300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_search_influencers",
+      "parentId": "fld_jornada_3",
+      "modified": 1681419871879,
+      "created": 1681419871879,
+      "url": "{{ _.BASE_URL }}/api/search/influencers",
+      "name": "3.4 Busca Avançada de Influenciadores",
+      "description": "Buscar influenciadores com diversos filtros e parâmetros",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "q",
+          "value": "test"
+        },
+        {
+          "name": "platform",
+          "value": "instagram",
+          "disabled": true
+        },
+        {
+          "name": "category",
+          "value": "fashion",
+          "disabled": true
+        },
+        {
+          "name": "min_followers",
+          "value": "1000",
+          "disabled": true
+        },
+        {
+          "name": "max_followers",
+          "value": "100000",
+          "disabled": true
+        },
+        {
+          "name": "min_engagement",
+          "value": "2.5",
+          "disabled": true
+        },
+        {
+          "name": "sort_by",
+          "value": "followers",
+          "disabled": true
+        },
+        {
+          "name": "sort_order",
+          "value": "desc",
+          "disabled": true
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "per_page",
+          "value": "10"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -980400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_search_categories",
+      "parentId": "fld_jornada_3",
+      "modified": 1681419871880,
+      "created": 1681419871880,
+      "url": "{{ _.BASE_URL }}/api/search/categories",
+      "name": "3.5 Listar Categorias",
+      "description": "Obter todas as categorias disponíveis para classificação de influenciadores",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -980500,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_4",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871881,
+      "created": 1681419871881,
+      "name": "4. Jornada de Métricas de Engajamento",
+      "description": "Obtenção e cálculo de métricas de engajamento",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -970000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_engagement_metrics",
+      "parentId": "fld_jornada_4",
+      "modified": 1681419871883,
+      "created": 1681419871883,
+      "url": "{{ _.BASE_URL }}/api/analytics/engagement/metrics/1",
+      "name": "4.1 Obter Métricas de Engajamento",
+      "description": "Obtém métricas detalhadas de engajamento para um influenciador específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "start_date",
+          "value": "2025-01-01",
+          "disabled": true
+        },
+        {
+          "name": "end_date",
+          "value": "2025-04-14",
+          "disabled": true
+        },
+        {
+          "name": "period",
+          "value": "last_month",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -970100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_engagement_calculate",
+      "parentId": "fld_jornada_4",
+      "modified": 1681419871884,
+      "created": 1681419871884,
+      "url": "{{ _.BASE_URL }}/api/analytics/engagement/calculate/1",
+      "name": "4.2 Calcular Métricas de Engajamento",
+      "description": "Força o cálculo e atualização das métricas de engajamento para um influenciador",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -970200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_engagement_calculate_all",
+      "parentId": "fld_jornada_4",
+      "modified": 1681419871885,
+      "created": 1681419871885,
+      "url": "{{ _.BASE_URL }}/api/analytics/engagement/calculate-all",
+      "name": "4.3 Calcular Todas as Métricas de Engajamento",
+      "description": "Calcular métricas de engajamento para todos os influenciadores",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -970300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_5",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871886,
+      "created": 1681419871886,
+      "name": "5. Jornada de Métricas de Alcance",
+      "description": "Obtenção e cálculo de métricas de alcance (reach)",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -960000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_reach_metrics",
+      "parentId": "fld_jornada_5",
+      "modified": 1681419871887,
+      "created": 1681419871887,
+      "url": "{{ _.BASE_URL }}/api/analytics/reach/metrics/1",
+      "name": "5.1 Obter Métricas de Alcance",
+      "description": "Obtém métricas detalhadas de alcance para um influenciador específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "start_date",
+          "value": "2025-01-01",
+          "disabled": true
+        },
+        {
+          "name": "end_date",
+          "value": "2025-04-14",
+          "disabled": true
+        },
+        {
+          "name": "period",
+          "value": "last_month",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -960100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_reach_calculate",
+      "parentId": "fld_jornada_5",
+      "modified": 1681419871888,
+      "created": 1681419871888,
+      "url": "{{ _.BASE_URL }}/api/analytics/reach/calculate/1",
+      "name": "5.2 Calcular Métricas de Alcance",
+      "description": "Força o cálculo e atualização das métricas de alcance para um influenciador",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -960200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_reach_calculate_all",
+      "parentId": "fld_jornada_5",
+      "modified": 1681419871889,
+      "created": 1681419871889,
+      "url": "{{ _.BASE_URL }}/api/analytics/reach/calculate-all",
+      "name": "5.3 Calcular Todas as Métricas de Alcance",
+      "description": "Calcular métricas de alcance para todos os influenciadores",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -960300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_6",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871890,
+      "created": 1681419871890,
+      "name": "6. Jornada de Métricas de Crescimento",
+      "description": "Obtenção e cálculo de métricas de crescimento",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -950000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_growth_metrics",
+      "parentId": "fld_jornada_6",
+      "modified": 1681419871891,
+      "created": 1681419871891,
+      "url": "{{ _.BASE_URL }}/api/analytics/growth/metrics/1",
+      "name": "6.1 Obter Métricas de Crescimento",
+      "description": "Obtém métricas detalhadas de crescimento para um influenciador específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "start_date",
+          "value": "2025-01-01",
+          "disabled": true
+        },
+        {
+          "name": "end_date",
+          "value": "2025-04-14",
+          "disabled": true
+        },
+        {
+          "name": "period",
+          "value": "last_month",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -950100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_growth_calculate",
+      "parentId": "fld_jornada_6",
+      "modified": 1681419871892,
+      "created": 1681419871892,
+      "url": "{{ _.BASE_URL }}/api/analytics/growth/calculate/1",
+      "name": "6.2 Calcular Métricas de Crescimento",
+      "description": "Força o cálculo e atualização das métricas de crescimento para um influenciador",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -950200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_growth_calculate_all",
+      "parentId": "fld_jornada_6",
+      "modified": 1681419871893,
+      "created": 1681419871893,
+      "url": "{{ _.BASE_URL }}/api/analytics/growth/calculate-all",
+      "name": "6.3 Calcular Todas as Métricas de Crescimento",
+      "description": "Calcular métricas de crescimento para todos os influenciadores",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -950300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_7",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871894,
+      "created": 1681419871894,
+      "name": "7. Jornada de Pontuação de Relevância",
+      "description": "Obtenção e cálculo de pontuações de relevância (scores)",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -940000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_score_metrics",
+      "parentId": "fld_jornada_7",
+      "modified": 1681419871895,
+      "created": 1681419871895,
+      "url": "{{ _.BASE_URL }}/api/analytics/score/metrics/1",
+      "name": "7.1 Obter Pontuação de Relevância",
+      "description": "Obtém pontuação de relevância e componentes para um influenciador específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "start_date",
+          "value": "2025-01-01",
+          "disabled": true
+        },
+        {
+          "name": "end_date",
+          "value": "2025-04-14",
+          "disabled": true
+        },
+        {
+          "name": "period",
+          "value": "last_month",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -940100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_score_calculate",
+      "parentId": "fld_jornada_7",
+      "modified": 1681419871896,
+      "created": 1681419871896,
+      "url": "{{ _.BASE_URL }}/api/analytics/score/calculate/1",
+      "name": "7.2 Calcular Pontuação de Relevância",
+      "description": "Força o cálculo e atualização da pontuação de relevância para um influenciador",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -940200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_score_calculate_all",
+      "parentId": "fld_jornada_7",
+      "modified": 1681419871897,
+      "created": 1681419871897,
+      "url": "{{ _.BASE_URL }}/api/analytics/score/calculate-all",
+      "name": "7.3 Calcular Todas as Pontuações de Relevância",
+      "description": "Calcular pontuações de relevância para todos os influenciadores",
+      "method": "POST",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -940300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_score_compare",
+      "parentId": "fld_jornada_7",
+      "modified": 1681419871898,
+      "created": 1681419871898,
+      "url": "{{ _.BASE_URL }}/api/analytics/score/compare",
+      "name": "7.4 Comparar Pontuações",
+      "description": "Comparar pontuações de relevância entre múltiplos influenciadores",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "influencer_ids",
+          "value": "1,2,3"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -940400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_8",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871899,
+      "created": 1681419871899,
+      "name": "8. Jornada de Visualização de Dashboard",
+      "description": "Endpoints para visualização de dados em dashboards",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -930000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_visualization_engagement",
+      "parentId": "fld_jornada_8",
+      "modified": 1681419871900,
+      "created": 1681419871900,
+      "url": "{{ _.BASE_URL }}/api/analytics/visualization/engagement/1",
+      "name": "8.1 Visualização de Engajamento",
+      "description": "Obtém dados formatados para visualização de métricas de engajamento",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "time_range",
+          "value": "30",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -930100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_visualization_reach",
+      "parentId": "fld_jornada_8",
+      "modified": 1681419871901,
+      "created": 1681419871901,
+      "url": "{{ _.BASE_URL }}/api/analytics/visualization/reach/1",
+      "name": "8.2 Visualização de Alcance",
+      "description": "Obtém dados formatados para visualização de métricas de alcance",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "time_range",
+          "value": "30",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -930200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_visualization_growth",
+      "parentId": "fld_jornada_8",
+      "modified": 1681419871902,
+      "created": 1681419871902,
+      "url": "{{ _.BASE_URL }}/api/analytics/visualization/growth/1",
+      "name": "8.3 Visualização de Crescimento",
+      "description": "Obtém dados formatados para visualização de métricas de crescimento",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "time_range",
+          "value": "30",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -930300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_visualization_score",
+      "parentId": "fld_jornada_8",
+      "modified": 1681419871903,
+      "created": 1681419871903,
+      "url": "{{ _.BASE_URL }}/api/analytics/visualization/score/1",
+      "name": "8.4 Visualização de Pontuação",
+      "description": "Obtém dados formatados para visualização de pontuações de relevância",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "time_range",
+          "value": "30",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -930400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_visualization_dashboard",
+      "parentId": "fld_jornada_8",
+      "modified": 1681419871904,
+      "created": 1681419871904,
+      "url": "{{ _.BASE_URL }}/api/analytics/visualization/dashboard/1",
+      "name": "8.5 Dashboard Completo",
+      "description": "Obtém visão geral completa do dashboard com todas as métricas",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -930500,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_visualization_compare",
+      "parentId": "fld_jornada_8",
+      "modified": 1681419871905,
+      "created": 1681419871905,
+      "url": "{{ _.BASE_URL }}/api/analytics/visualization/compare",
+      "name": "8.6 Comparação de Influenciadores",
+      "description": "Obtém visualização comparativa entre múltiplos influenciadores",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "influencer_ids",
+          "value": "1,2,3"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -930600,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_9",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871906,
+      "created": 1681419871906,
+      "name": "9. Jornada de Análise de Sentimento",
+      "description": "Análise de sentimento de conteúdo e comentários",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -920000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_sentiment_analyze",
+      "parentId": "fld_jornada_9",
+      "modified": 1681419871907,
+      "created": 1681419871907,
+      "url": "{{ _.BASE_URL }}/api/analytics/sentiment/analyze",
+      "name": "9.1 Analisar Sentimento de Texto",
+      "description": "Analisa o sentimento de um texto fornecido",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"text\": \"Adorei o produto, recomendo para todos!\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -920100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_sentiment_influencer",
+      "parentId": "fld_jornada_9",
+      "modified": 1681419871908,
+      "created": 1681419871908,
+      "url": "{{ _.BASE_URL }}/api/analytics/sentiment/influencer/1/sentiment",
+      "name": "9.2 Análise de Sentimento do Influenciador",
+      "description": "Obtém análise de sentimento para todos os conteúdos de um influenciador",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "time_range",
+          "value": "30",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -920200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_sentiment_post",
+      "parentId": "fld_jornada_9",
+      "modified": 1681419871909,
+      "created": 1681419871909,
+      "url": "{{ _.BASE_URL }}/api/analytics/sentiment/post/1/sentiment",
+      "name": "9.3 Análise de Sentimento do Post",
+      "description": "Obtém análise de sentimento para um post específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -920300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_sentiment_comments",
+      "parentId": "fld_jornada_9",
+      "modified": 1681419871910,
+      "created": 1681419871910,
+      "url": "{{ _.BASE_URL }}/api/analytics/sentiment/post/1/comments",
+      "name": "9.4 Comentários com Análise de Sentimento",
+      "description": "Obtém todos os comentários de um post com análise de sentimento",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -920400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_jornada_10",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871911,
+      "created": 1681419871911,
+      "name": "10. Jornada de Otimização de Horários",
+      "description": "Análise e otimização de horários de postagem",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -910000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_posting_time_best_times",
+      "parentId": "fld_jornada_10",
+      "modified": 1681419871912,
+      "created": 1681419871912,
+      "url": "{{ _.BASE_URL }}/api/analytics/posting-time/best-times",
+      "name": "10.1 Melhores Horários",
+      "description": "Obtém melhores horários para postagem baseados em engajamento histórico",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "platform",
+          "value": "instagram",
+          "disabled": true
+        },
+        {
+          "name": "content_type",
+          "value": "image",
+          "disabled": true
+        },
+        {
+          "name": "days",
+          "value": "90",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -910100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_posting_time_days_of_week",
+      "parentId": "fld_jornada_10",
+      "modified": 1681419871913,
+      "created": 1681419871913,
+      "url": "{{ _.BASE_URL }}/api/analytics/posting-time/days-of-week",
+      "name": "10.2 Análise por Dia da Semana",
+      "description": "Obtém análise de desempenho por dia da semana",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "platform",
+          "value": "instagram",
+          "disabled": true
+        },
+        {
+          "name": "days",
+          "value": "90",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -910200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_posting_time_content_types",
+      "parentId": "fld_jornada_10",
+      "modified": 1681419871914,
+      "created": 1681419871914,
+      "url": "{{ _.BASE_URL }}/api/analytics/posting-time/content-types",
+      "name": "10.3 Desempenho por Tipo de Conteúdo",
+      "description": "Obtém análise de desempenho por tipo de conteúdo",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "platform",
+          "value": "instagram",
+          "disabled": true
+        },
+        {
+          "name": "days",
+          "value": "90",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -910300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_posting_time_recommendations",
+      "parentId": "fld_jornada_10",
+      "modified": 1681419871915,
+      "created": 1681419871915,
+      "url": "{{ _.BASE_URL }}/api/analytics/posting-time/recommendations",
+      "name": "10.4 Recomendações Personalizadas",
+      "description": "Obtém recomendações personalizadas de horários de postagem",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "platform",
+          "value": "instagram",
+          "disabled": true
+        },
+        {
+          "name": "content_type",
+          "value": "image",
+          "disabled": true
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.ACCESS_TOKEN }}"
+      },
+      "metaSortKey": -910400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "env_analisaai",
+      "parentId": "wrk_analisaai_social_media",
+      "modified": 1681419871916,
+      "created": 1681419871916,
+      "name": "Base Environment",
+      "data": {
+        "BASE_URL": "http://localhost:5000",
+        "ACCESS_TOKEN": "",
+        "REFRESH_TOKEN": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "BASE_URL",
+          "ACCESS_TOKEN",
+          "REFRESH_TOKEN"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1000000,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_development",
+      "parentId": "env_analisaai",
+      "modified": 1681419871917,
+      "created": 1681419871917,
+      "name": "Development",
+      "data": {
+        "BASE_URL": "http://localhost:5000"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "BASE_URL"
+        ]
+      },
+      "color": "#7d69cb",
+      "isPrivate": false,
+      "metaSortKey": 1000100,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_production",
+      "parentId": "env_analisaai",
+      "modified": 1681419871918,
+      "created": 1681419871918,
+      "name": "Production",
+      "data": {
+        "BASE_URL": "https://api.analisaai.com"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "BASE_URL"
+        ]
+      },
+      "color": "#ff0000",
+      "isPrivate": false,
+      "metaSortKey": 1000200,
+      "_type": "environment"
+    }
+  ]
+}

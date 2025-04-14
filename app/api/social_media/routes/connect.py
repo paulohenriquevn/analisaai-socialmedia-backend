@@ -6,7 +6,7 @@ import logging
 
 from app.extensions import db
 from app.models.user import User
-from app.api.social_media.schemas.connect import SocialMediaConnectRequest, SocialMediaConnectResponse
+from app.api.social_media.schemas.connect import SocialMediaConnectRequest, SocialMediaConnectResponse, EngagementMetricsSchema
 from app.services.social_media_service import SocialMediaService
 
 from app.api.social_media import bp
@@ -245,6 +245,57 @@ def connect_social_media():
             except Exception as e:
                 logger.warning(f"Error updating {clean_username}'s data: {str(e)}")
     
+    # Calculate metrics for the new/updated influencer
+    engagement_metrics_result = None
+    reach_metrics_result = None
+    growth_metrics_result = None
+    score_metrics_result = None
+    
+    try:
+        if influencer:
+            # Calculate engagement metrics
+            from app.services.engagement_service import EngagementService
+            logger.info(f"Calculating engagement metrics for newly connected influencer {influencer.id}")
+            
+            engagement_metrics_result = EngagementService.calculate_engagement_metrics(influencer.id)
+            if engagement_metrics_result:
+                logger.info(f"Successfully calculated engagement metrics for influencer {influencer.id}")
+            else:
+                logger.warning(f"Failed to calculate engagement metrics for influencer {influencer.id}")
+                
+            # Calculate reach metrics
+            from app.services.reach_service import ReachService
+            logger.info(f"Calculating reach metrics for newly connected influencer {influencer.id}")
+            
+            reach_metrics_result = ReachService.calculate_reach_metrics(influencer.id, user_id)
+            if reach_metrics_result:
+                logger.info(f"Successfully calculated reach metrics for influencer {influencer.id}")
+            else:
+                logger.warning(f"Failed to calculate reach metrics for influencer {influencer.id}")
+                
+            # Calculate growth metrics
+            from app.services.growth_service import GrowthService
+            logger.info(f"Calculating growth metrics for newly connected influencer {influencer.id}")
+            
+            growth_metrics_result = GrowthService.calculate_growth_metrics(influencer.id)
+            if growth_metrics_result:
+                logger.info(f"Successfully calculated growth metrics for influencer {influencer.id}")
+            else:
+                logger.warning(f"Failed to calculate growth metrics for influencer {influencer.id}")
+                
+            # Calculate relevance score (after all other metrics)
+            from app.services.score_service import ScoreService
+            logger.info(f"Calculating relevance score for newly connected influencer {influencer.id}")
+            
+            score_metrics_result = ScoreService.calculate_relevance_score(influencer.id)
+            if score_metrics_result:
+                logger.info(f"Successfully calculated relevance score for influencer {influencer.id}")
+            else:
+                logger.warning(f"Failed to calculate relevance score for influencer {influencer.id}")
+    except Exception as e:
+        logger.error(f"Error calculating metrics for connected account: {str(e)}")
+        # Don't block the main flow if metrics calculation fails
+    
     # Prepare response
     response = {
         "id": user.id,
@@ -255,5 +306,87 @@ def connect_social_media():
         "created_at": user.updated_at,
         "influencer_id": influencer.id if influencer else None
     }
+    
+    # Add engagement metrics to the response if they were calculated
+    if engagement_metrics_result:
+        # Format the date if it's a datetime object
+        if 'date' in engagement_metrics_result and hasattr(engagement_metrics_result['date'], 'isoformat'):
+            engagement_metrics_result['date'] = engagement_metrics_result['date'].isoformat()
+            
+        response["engagement_metrics"] = {
+            "date": engagement_metrics_result.get('date'),
+            "posts_count": engagement_metrics_result.get('posts_count'),
+            "engagement_rate": engagement_metrics_result.get('engagement_rate'),
+            "avg_likes_per_post": engagement_metrics_result.get('avg_likes_per_post'),
+            "avg_comments_per_post": engagement_metrics_result.get('avg_comments_per_post'),
+            "avg_shares_per_post": engagement_metrics_result.get('avg_shares_per_post'),
+            "total_likes": engagement_metrics_result.get('total_likes'),
+            "total_comments": engagement_metrics_result.get('total_comments'),
+            "total_shares": engagement_metrics_result.get('total_shares'),
+            "growth_rate": engagement_metrics_result.get('growth_rate')
+        }
+    
+    # Add reach metrics to the response if they were calculated
+    if reach_metrics_result:
+        # Format date/datetime fields
+        if 'date' in reach_metrics_result and hasattr(reach_metrics_result['date'], 'isoformat'):
+            reach_metrics_result['date'] = reach_metrics_result['date'].isoformat()
+        if 'timestamp' in reach_metrics_result and hasattr(reach_metrics_result['timestamp'], 'isoformat'):
+            reach_metrics_result['timestamp'] = reach_metrics_result['timestamp'].isoformat()
+            
+        response["reach_metrics"] = {
+            "date": reach_metrics_result.get('date'),
+            "impressions": reach_metrics_result.get('impressions'),
+            "reach": reach_metrics_result.get('reach'),
+            "story_views": reach_metrics_result.get('story_views'),
+            "profile_views": reach_metrics_result.get('profile_views'),
+            "stories_count": reach_metrics_result.get('stories_count'),
+            "story_engagement_rate": reach_metrics_result.get('story_engagement_rate'),
+            "story_completion_rate": reach_metrics_result.get('story_completion_rate'),
+            "audience_growth": reach_metrics_result.get('audience_growth')
+        }
+    
+    # Add growth metrics to the response if they were calculated
+    if growth_metrics_result:
+        # Format date field
+        if 'date' in growth_metrics_result and hasattr(growth_metrics_result['date'], 'isoformat'):
+            growth_metrics_result['date'] = growth_metrics_result['date'].isoformat()
+            
+        response["growth_metrics"] = {
+            "date": growth_metrics_result.get('date'),
+            "followers_count": growth_metrics_result.get('followers_count'),
+            "new_followers_daily": growth_metrics_result.get('new_followers_daily'),
+            "new_followers_weekly": growth_metrics_result.get('new_followers_weekly'),
+            "new_followers_monthly": growth_metrics_result.get('new_followers_monthly'),
+            "retention_rate": growth_metrics_result.get('retention_rate'),
+            "churn_rate": growth_metrics_result.get('churn_rate'),
+            "daily_growth_rate": growth_metrics_result.get('daily_growth_rate'),
+            "weekly_growth_rate": growth_metrics_result.get('weekly_growth_rate'),
+            "monthly_growth_rate": growth_metrics_result.get('monthly_growth_rate'),
+            "growth_velocity": growth_metrics_result.get('growth_velocity'),
+            "growth_acceleration": growth_metrics_result.get('growth_acceleration'),
+            "projected_followers_30d": growth_metrics_result.get('projected_followers_30d'),
+            "projected_followers_90d": growth_metrics_result.get('projected_followers_90d')
+        }
+    
+    # Add score metrics to the response if they were calculated
+    if score_metrics_result:
+        # Format date field
+        if 'date' in score_metrics_result and hasattr(score_metrics_result['date'], 'isoformat'):
+            score_metrics_result['date'] = score_metrics_result['date'].isoformat()
+            
+        response["score_metrics"] = {
+            "date": score_metrics_result.get('date'),
+            "overall_score": score_metrics_result.get('overall_score'),
+            "engagement_score": score_metrics_result.get('engagement_score'),
+            "reach_score": score_metrics_result.get('reach_score'),
+            "growth_score": score_metrics_result.get('growth_score'),
+            "consistency_score": score_metrics_result.get('consistency_score'),
+            "audience_quality_score": score_metrics_result.get('audience_quality_score')
+        }
+        
+        if influencer:
+            # Also add the current relevance score
+            response["relevance_score"] = influencer.relevance_score
     
     return jsonify(SocialMediaConnectResponse().dump(response)), 201

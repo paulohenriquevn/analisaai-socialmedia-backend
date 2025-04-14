@@ -985,6 +985,10 @@ class SocialMediaService:
         platform = profile_data.get('platform')
         username = profile_data.get('username')
         
+        if not platform or not username:
+            logger.error(f"Missing required fields in profile data: platform or username")
+            return None
+        
         # Check if influencer already exists
         influencer = Influencer.query.filter_by(
             platform=platform,
@@ -1006,55 +1010,123 @@ class SocialMediaService:
             influencer.engagement_rate = profile_data.get('engagement_rate', 0)
             influencer.social_score = social_score
             influencer.updated_at = datetime.utcnow()
+            logger.info(f"Updated existing influencer: {username} on {platform}")
         else:
             # Create new influencer
-            influencer = Influencer(
-                username=username,
-                full_name=profile_data.get('full_name'),
-                platform=platform,
-                profile_url=profile_data.get('profile_url'),
-                profile_image=profile_data.get('profile_image'),
-                bio=profile_data.get('bio'),
-                followers_count=profile_data.get('followers_count', 0),
-                following_count=profile_data.get('following_count', 0),
-                posts_count=profile_data.get('posts_count', 0),
-                engagement_rate=profile_data.get('engagement_rate', 0),
-                social_score=social_score
-            )
-            db.session.add(influencer)
+            try:
+                influencer = Influencer(
+                    username=username,
+                    full_name=profile_data.get('full_name'),
+                    platform=platform,
+                    profile_url=profile_data.get('profile_url'),
+                    profile_image=profile_data.get('profile_image'),
+                    bio=profile_data.get('bio'),
+                    followers_count=profile_data.get('followers_count', 0),
+                    following_count=profile_data.get('following_count', 0),
+                    posts_count=profile_data.get('posts_count', 0),
+                    engagement_rate=profile_data.get('engagement_rate', 0),
+                    social_score=social_score
+                )
+                db.session.add(influencer)
+                logger.info(f"Created new influencer: {username} on {platform}")
+            except Exception as e:
+                logger.error(f"Error creating influencer {username} on {platform}: {str(e)}")
+                db.session.rollback()
+                return None
         
-        # Save metrics
-        metrics = profile_data.get('metrics', {})
-        if metrics:
-            metric = InfluencerMetric(
-                influencer=influencer,
-                date=datetime.utcnow().date(),
-                followers=metrics.get('followers'),
-                engagement=metrics.get('engagement'),
-                posts=metrics.get('posts'),
-                likes=metrics.get('likes'),
-                comments=metrics.get('comments'),
-                shares=metrics.get('shares'),
-                views=metrics.get('views')
-            )
-            db.session.add(metric)
-        
-        # Add categories if available
-        if 'categories' in profile_data and isinstance(profile_data['categories'], list):
-            for cat_name in profile_data['categories']:
-                # Check if category exists
-                category = Category.query.filter_by(name=cat_name).first()
-                if not category:
-                    # Create new category
-                    category = Category(name=cat_name, description=f"Category for {cat_name}")
-                    db.session.add(category)
+        try:
+            # Save metrics
+            metrics = profile_data.get('metrics', {})
+            if metrics:
+                # Check if we already have metrics for today
+                today = datetime.utcnow().date()
+                existing_metric = InfluencerMetric.query.filter_by(
+                    influencer=influencer,
+                    date=today
+                ).first()
                 
-                # Add category to influencer if not already present
-                if category not in influencer.categories:
-                    influencer.categories.append(category)
-        
-        db.session.commit()
-        return influencer
+                if existing_metric:
+                    # Update existing metric
+                    if 'followers' in metrics:
+                        existing_metric.followers = metrics.get('followers')
+                    if 'engagement' in metrics:
+                        existing_metric.engagement = metrics.get('engagement')
+                    if 'posts' in metrics:
+                        existing_metric.posts = metrics.get('posts')
+                    if 'likes' in metrics:
+                        existing_metric.likes = metrics.get('likes')
+                    if 'comments' in metrics:
+                        existing_metric.comments = metrics.get('comments')
+                    if 'shares' in metrics:
+                        existing_metric.shares = metrics.get('shares')
+                    if 'views' in metrics:
+                        existing_metric.views = metrics.get('views')
+                    logger.info(f"Updated existing metrics for {username} on {platform}")
+                else:
+                    # Create new metric
+                    metric = InfluencerMetric(
+                        influencer=influencer,
+                        date=today,
+                        followers=metrics.get('followers'),
+                        engagement=metrics.get('engagement'),
+                        posts=metrics.get('posts'),
+                        likes=metrics.get('likes'),
+                        comments=metrics.get('comments'),
+                        shares=metrics.get('shares'),
+                        views=metrics.get('views')
+                    )
+                    db.session.add(metric)
+                    logger.info(f"Created new metrics for {username} on {platform}")
+            
+            # Add categories if available
+            if 'categories' in profile_data and isinstance(profile_data['categories'], list):
+                for cat_name in profile_data['categories']:
+                    # Check if category exists
+                    category = Category.query.filter_by(name=cat_name).first()
+                    if not category:
+                        # Create new category
+                        category = Category(name=cat_name, description=f"Category for {cat_name}")
+                        db.session.add(category)
+                    
+                    # Add category to influencer if not already present
+                    if category not in influencer.categories:
+                        influencer.categories.append(category)
+                logger.info(f"Added {len(profile_data['categories'])} categories to {username}")
+            
+            db.session.commit()
+            
+            # After saving all the data, calculate all metrics
+            try:
+                # Import here to avoid circular imports
+                from app.services.engagement_service import EngagementService
+                logger.info(f"Calculating engagement metrics for influencer {influencer.id} - {username}")
+                # Calculate metrics in a try-except block so it doesn't block the main flow if it fails
+                EngagementService.calculate_engagement_metrics(influencer.id)
+                
+                # Calculate reach metrics
+                from app.services.reach_service import ReachService
+                logger.info(f"Calculating reach metrics for influencer {influencer.id} - {username}")
+                ReachService.calculate_reach_metrics(influencer.id)
+                
+                # Calculate growth metrics
+                from app.services.growth_service import GrowthService
+                logger.info(f"Calculating growth metrics for influencer {influencer.id} - {username}")
+                GrowthService.calculate_growth_metrics(influencer.id)
+                
+                # Calculate relevance score (must be calculated after all other metrics)
+                from app.services.score_service import ScoreService
+                logger.info(f"Calculating relevance score for influencer {influencer.id} - {username}")
+                ScoreService.calculate_relevance_score(influencer.id)
+            except Exception as e:
+                logger.error(f"Error calculating metrics for {username}: {str(e)}")
+                # Continue anyway, as the basic influencer data is already saved
+            
+            return influencer
+            
+        except Exception as e:
+            logger.error(f"Error saving influencer data for {username} on {platform}: {str(e)}")
+            db.session.rollback()
+            return None
     
     @staticmethod
     def find_social_media_id(platform, username, user_id=None):

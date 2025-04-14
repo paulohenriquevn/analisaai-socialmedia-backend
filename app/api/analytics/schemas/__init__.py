@@ -3,6 +3,16 @@ JSON schemas for analytics API.
 """
 from marshmallow import Schema, fields, validate
 
+# Import visualization schemas
+from app.api.analytics.schemas.visualization import (
+    EngagementVisualizationSchema,
+    ReachVisualizationSchema,
+    GrowthVisualizationSchema,
+    ScoreVisualizationSchema,
+    DashboardOverviewSchema,
+    ComparisonVisualizationSchema
+)
+
 
 class MetricsRequestSchema(Schema):
     """Schema for metrics request parameters."""

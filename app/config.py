@@ -32,7 +32,7 @@ class Config:
     ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '')
     
     # Apify API
-    APIFY_API_KEY = os.getenv('APIFY_API_KEY', 'apify_api_341pYMRbo9mcSYiM1RwqMda06kG7Mj1HH3Xq')
+    APIFY_API_KEY = os.getenv('APIFY_API_KEY', '')
 
 
 class DevelopmentConfig(Config):
