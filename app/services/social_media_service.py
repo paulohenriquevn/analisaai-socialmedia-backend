@@ -4,10 +4,15 @@ Service for interacting with social media platforms.
 import requests
 import json
 import logging
+import random
+import re
+import html
+import time
 from datetime import datetime, timedelta
 from app.extensions import db
 from app.models import Influencer, InfluencerMetric, Category
 from app.services.oauth_service import get_token
+from app.services.apify_service import ApifyService
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +32,49 @@ class SocialMediaService:
             dict: Instagram profile data or None if error
         """
         logger.info(f"Fetching Instagram profile for user_id={user_id}, username={username}")
-        token_data = get_token(user_id, 'instagram')
-        if not token_data:
-            logger.error(f"No Instagram token found for user {user_id}")
-            return None
         
+        # Try to use official API first
+        try:
+            token_data = get_token(user_id, 'instagram')
+            if token_data:
+                profile_data = SocialMediaService._fetch_instagram_via_api(token_data, username)
+                if profile_data and 'error' not in profile_data:
+                    logger.info(f"Successfully fetched Instagram profile via official API")
+                    return profile_data
+        except Exception as e:
+            logger.warning(f"Error using official Instagram API: {str(e)}")
+        
+        # Fallback to Apify service if username is provided
+        if username:
+            try:
+                logger.info(f"Attempting to fetch Instagram profile via Apify: {username}")
+                profile_data = ApifyService.fetch_instagram_profile(username)
+                if profile_data and 'error' not in profile_data:
+                    logger.info(f"Successfully fetched Instagram profile via Apify")
+                    return profile_data
+            except Exception as e:
+                logger.warning(f"Error fetching Instagram data via Apify: {str(e)}")
+        
+        # Fallback to scraping public data if available
+        try:
+            logger.info(f"Attempting to fetch Instagram profile via web scraping: {username}")
+            profile_data = SocialMediaService._fetch_instagram_public_data(username)
+            if profile_data and 'error' not in profile_data:
+                logger.info(f"Successfully fetched Instagram profile via web scraping")
+                return profile_data
+        except Exception as e:
+            logger.warning(f"Error fetching public Instagram data: {str(e)}")
+            
+        # Return None if all methods fail
+        logger.error(f"All methods to fetch Instagram profile failed")
+        return None
+    
+    @staticmethod
+    def _fetch_instagram_via_api(token_data, username=None):
+        """
+        Fetch Instagram profile using the official API.
+        """
         access_token = token_data['access_token']
-        logger.info(f"Using Instagram access token for user {user_id}")
         
         # First we need to get all connected Instagram accounts through the Facebook Graph API
         try:
@@ -44,11 +85,73 @@ class SocialMediaService:
                 'fields': 'instagram_business_account,name,id'
             }
             logger.info(f"Requesting Facebook Pages with Instagram Business accounts")
-            response = requests.get(accounts_url, params=params)
-            response.raise_for_status()
             
-            accounts_data = response.json()
+            try:
+                response = requests.get(accounts_url, params=params, timeout=10)
+                response.raise_for_status()
+            except requests.exceptions.Timeout:
+                logger.error("Timeout when connecting to Facebook Graph API")
+                return {
+                    'error': 'api_timeout',
+                    'message': 'Connection to Facebook API timed out. Please try again later.'
+                }
+            except requests.exceptions.HTTPError as http_err:
+                status_code = getattr(http_err.response, 'status_code', 0)
+                error_msg = getattr(http_err.response, 'text', str(http_err))
+                
+                if status_code == 401 or status_code == 403:
+                    logger.error(f"Authentication error when connecting to Facebook API: {error_msg}")
+                    return {
+                        'error': 'auth_error',
+                        'message': 'Authentication failed. Please reconnect your Facebook account.'
+                    }
+                elif status_code == 429:
+                    logger.error(f"Rate limit exceeded for Facebook API: {error_msg}")
+                    return {
+                        'error': 'rate_limit',
+                        'message': 'Facebook API rate limit exceeded. Please try again later.'
+                    }
+                else:
+                    logger.error(f"HTTP error when connecting to Facebook API: {error_msg}")
+                    return {
+                        'error': 'api_error',
+                        'message': f"Facebook API error: {error_msg}"
+                    }
+            except requests.exceptions.ConnectionError:
+                logger.error("Network connection error when connecting to Facebook API")
+                return {
+                    'error': 'connection_error',
+                    'message': 'Network connection error. Please check your internet connection.'
+                }
+            except Exception as e:
+                logger.error(f"Unexpected error when connecting to Facebook API: {str(e)}")
+                return {
+                    'error': 'api_error',
+                    'message': 'An unexpected error occurred while connecting to Facebook API.'
+                }
+            
+            try:
+                accounts_data = response.json()
+            except ValueError:
+                logger.error("Invalid JSON response from Facebook API")
+                return {
+                    'error': 'invalid_response',
+                    'message': 'Invalid response from Facebook API.'
+                }
+            
             logger.info(f"Found {len(accounts_data.get('data', []))} Facebook Pages")
+            
+            # Check for API errors in the response
+            if 'error' in accounts_data:
+                error_msg = accounts_data.get('error', {}).get('message', 'Unknown API error')
+                error_code = accounts_data.get('error', {}).get('code', 0)
+                
+                logger.error(f"Facebook API error: {error_code} - {error_msg}")
+                return {
+                    'error': 'facebook_api_error',
+                    'message': f"Facebook API error: {error_msg}",
+                    'code': error_code
+                }
             
             # Filter to find pages with Instagram business accounts
             instagram_accounts = []
@@ -61,7 +164,7 @@ class SocialMediaService:
                     })
             
             if not instagram_accounts:
-                logger.warning(f"No Instagram Business accounts found for user {user_id}")
+                logger.warning(f"No Instagram Business accounts found")
                 return {
                     'error': 'no_business_account',
                     'message': 'No Instagram Business accounts found. Please make sure your Instagram account is connected to a Facebook Page and is set as a Business or Creator account.'
@@ -81,18 +184,26 @@ class SocialMediaService:
                         'fields': 'username',
                         'access_token': access_token
                     }
-                    ig_response = requests.get(ig_url, params=params)
-                    ig_response.raise_for_status()
-                    ig_data = ig_response.json()
                     
-                    if ig_data.get('username') == username:
-                        instagram_account = account
-                        instagram_user_id = ig_id
-                        break
+                    try:
+                        ig_response = requests.get(ig_url, params=params, timeout=10)
+                        ig_response.raise_for_status()
+                        ig_data = ig_response.json()
+                        
+                        if ig_data.get('username') == username:
+                            instagram_account = account
+                            instagram_user_id = ig_id
+                            break
+                    except Exception as e:
+                        logger.warning(f"Error checking Instagram account {ig_id}: {str(e)}")
+                        continue
                 
                 if not instagram_account:
                     logger.error(f"Instagram account with username {username} not found")
-                    return None
+                    return {
+                        'error': 'account_not_found',
+                        'message': f"Instagram account with username {username} was not found among your connected business accounts."
+                    }
             else:
                 # Just use the first account
                 instagram_account = instagram_accounts[0]
@@ -105,11 +216,18 @@ class SocialMediaService:
                 'fields': 'id,username,name,biography,profile_picture_url,follows_count,followers_count,media_count,website',
                 'access_token': access_token
             }
-            profile_response = requests.get(profile_url, params=params)
-            profile_response.raise_for_status()
             
-            profile_data = profile_response.json()
-            logger.info(f"Got profile data for Instagram account {profile_data.get('username')}")
+            try:
+                profile_response = requests.get(profile_url, params=params, timeout=10)
+                profile_response.raise_for_status()
+                profile_data = profile_response.json()
+                logger.info(f"Got profile data for Instagram account {profile_data.get('username')}")
+            except Exception as e:
+                logger.error(f"Error fetching Instagram profile data: {str(e)}")
+                return {
+                    'error': 'profile_fetch_error',
+                    'message': f"Failed to fetch Instagram profile data: {str(e)}"
+                }
             
             # Get recent media for engagement metrics
             media_url = f"https://graph.facebook.com/v16.0/{instagram_user_id}/media"
@@ -118,12 +236,17 @@ class SocialMediaService:
                 'limit': 25,  # Get more posts for better engagement calculation
                 'access_token': access_token
             }
-            media_response = requests.get(media_url, params=params)
-            media_response.raise_for_status()
             
-            media_data = media_response.json()
-            media_items = media_data.get('data', [])
-            logger.info(f"Retrieved {len(media_items)} media items")
+            try:
+                media_response = requests.get(media_url, params=params, timeout=10)
+                media_response.raise_for_status()
+                media_data = media_response.json()
+                media_items = media_data.get('data', [])
+                logger.info(f"Retrieved {len(media_items)} media items")
+            except Exception as e:
+                logger.warning(f"Error fetching Instagram media: {str(e)}")
+                # Non-fatal error, continue with empty media items
+                media_items = []
             
             # Calculate engagement metrics
             total_likes = 0
@@ -149,7 +272,7 @@ class SocialMediaService:
                     'period': 'day',
                     'access_token': access_token
                 }
-                insights_response = requests.get(insights_url, params=params)
+                insights_response = requests.get(insights_url, params=params, timeout=10)
                 insights_response.raise_for_status()
                 insights_data = insights_response.json()
                 logger.info(f"Retrieved Instagram insights data")
@@ -198,13 +321,256 @@ class SocialMediaService:
                 ]
             }
             
+            # Try to determine categories based on bio and content
+            categories = SocialMediaService._determine_categories(
+                bio=profile_data.get('biography', ''),
+                recent_content=[post.get('caption', '') for post in media_items if 'caption' in post]
+            )
+            if categories:
+                account_data['categories'] = categories
+            
             return account_data
             
         except Exception as e:
             logger.error(f"Error fetching Instagram profile data: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            return None
+            return {
+                'error': 'unexpected_error',
+                'message': f"An unexpected error occurred: {str(e)}"
+            }
+    
+    @staticmethod
+    def _fetch_instagram_public_data(username):
+        """
+        Fetch publicly available Instagram profile data by scraping.
+        This is a fallback method when official API access is not available.
+        
+        Note: Web scraping may be against Instagram's terms of service.
+        This should only be used for educational purposes.
+        """
+        if not username:
+            return {
+                'error': 'missing_username',
+                'message': 'Username is required to fetch Instagram profile data'
+            }
+            
+        # Remove @ if present
+        username = username.replace('@', '').strip()
+        
+        try:
+            # Attempt to get public profile page
+            logger.info(f"Attempting to fetch public data for Instagram user: {username}")
+            
+            # Use a reasonably modern user agent
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+            
+            # Request profile page with proper error handling
+            url = f"https://www.instagram.com/{username}/"
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
+            except requests.exceptions.Timeout:
+                logger.error(f"Timeout when fetching Instagram page for {username}")
+                return {
+                    'error': 'timeout',
+                    'message': 'Connection timed out while fetching Instagram profile. Please try again later.'
+                }
+            except requests.exceptions.HTTPError as http_err:
+                status_code = getattr(http_err.response, 'status_code', 0)
+                
+                if status_code == 404:
+                    logger.error(f"Instagram profile not found for {username}")
+                    return {
+                        'error': 'profile_not_found',
+                        'message': f"Instagram profile '@{username}' does not exist or is not publicly accessible."
+                    }
+                elif status_code == 429:
+                    logger.error(f"Rate limit exceeded when fetching Instagram profile for {username}")
+                    return {
+                        'error': 'rate_limit',
+                        'message': 'Too many requests. Please try again later.'
+                    }
+                else:
+                    logger.error(f"HTTP error {status_code} when fetching Instagram profile for {username}")
+                    return {
+                        'error': 'http_error',
+                        'message': f"Failed to fetch Instagram profile: HTTP error {status_code}"
+                    }
+            except requests.exceptions.ConnectionError:
+                logger.error(f"Connection error when fetching Instagram profile for {username}")
+                return {
+                    'error': 'connection_error',
+                    'message': 'Network connection error. Please check your internet connection.'
+                }
+            except Exception as e:
+                logger.error(f"Unexpected error when fetching Instagram page for {username}: {str(e)}")
+                return {
+                    'error': 'request_error',
+                    'message': 'An error occurred while fetching the Instagram profile.'
+                }
+                
+            # Look for JSON data in the page
+            html_content = response.text
+            
+            # Common pattern in Instagram HTML where profile data is stored
+            # This pattern may change as Instagram updates their site
+            json_data_pattern = r'<script type="application/ld\+json">(.*?)</script>'
+            json_matches = re.findall(json_data_pattern, html_content, re.DOTALL)
+            
+            if not json_matches:
+                # Try alternative pattern used by Instagram
+                json_data_pattern = r'window\._sharedData = (.*?);</script>'
+                json_matches = re.findall(json_data_pattern, html_content, re.DOTALL)
+            
+            if not json_matches:
+                # Try newer pattern that Instagram might be using
+                json_data_pattern = r'window\.__additionalDataLoaded\s*\(\s*[\'"]profilePage[\'"]\s*,\s*(.*?)\);<\/script>'
+                json_matches = re.findall(json_data_pattern, html_content, re.DOTALL)
+            
+            if not json_matches:
+                logger.warning(f"Could not find profile data in Instagram page for {username}")
+                return {
+                    'error': 'data_extraction_failed',
+                    'message': 'Could not extract profile data from Instagram. The page structure may have changed.'
+                }
+                
+            # Attempt to parse JSON data
+            parsed_data = None
+            error_messages = []
+            
+            for json_str in json_matches:
+                try:
+                    # Unescape HTML entities if present
+                    json_str = html.unescape(json_str)
+                    data = json.loads(json_str)
+                    
+                    # Extract profile info based on Instagram's current structure
+                    # First try LD+JSON structure
+                    if '@type' in data and data.get('@type') == 'ProfilePage':
+                        followers = 0
+                        if 'mainEntityofPage' in data and 'interactionStatistic' in data['mainEntityofPage']:
+                            for stat in data['mainEntityofPage']['interactionStatistic']:
+                                if stat.get('name') == 'followers':
+                                    followers = int(stat.get('userInteractionCount', 0))
+                        
+                        # Build profile data
+                        profile_data = {
+                            'platform': 'instagram',
+                            'username': username,
+                            'full_name': data.get('name', username),
+                            'profile_url': url,
+                            'profile_image': data.get('image', ''),
+                            'bio': data.get('description', ''),
+                            'followers_count': followers,
+                            'engagement_rate': 0.0,  # Can't accurately calculate without post data
+                            'account_type': 'personal'  # Assumption for public profiles
+                        }
+                        
+                        # Try to determine categories
+                        categories = SocialMediaService._determine_categories(bio=profile_data.get('bio', ''))
+                        if categories:
+                            profile_data['categories'] = categories
+                            
+                        parsed_data = profile_data
+                        break
+                        
+                    # Try shared data structure
+                    elif 'entry_data' in data and 'ProfilePage' in data['entry_data']:
+                        profile = data['entry_data']['ProfilePage'][0]['graphql']['user']
+                        
+                        # Build profile data
+                        profile_data = {
+                            'platform': 'instagram',
+                            'username': profile.get('username', username),
+                            'full_name': profile.get('full_name', username),
+                            'profile_url': url,
+                            'profile_image': profile.get('profile_pic_url_hd', profile.get('profile_pic_url', '')),
+                            'bio': profile.get('biography', ''),
+                            'followers_count': profile.get('edge_followed_by', {}).get('count', 0),
+                            'following_count': profile.get('edge_follow', {}).get('count', 0),
+                            'posts_count': profile.get('edge_owner_to_timeline_media', {}).get('count', 0),
+                            'engagement_rate': 0.0,  # Calculate if post data is available
+                            'account_type': 'verified' if profile.get('is_verified', False) else 'personal'
+                        }
+                        
+                        # Try to extract post data if available
+                        if 'edge_owner_to_timeline_media' in profile and 'edges' in profile['edge_owner_to_timeline_media']:
+                            posts = profile['edge_owner_to_timeline_media']['edges']
+                            if posts:
+                                total_likes = sum(post['node'].get('edge_liked_by', {}).get('count', 0) for post in posts)
+                                total_comments = sum(post['node'].get('edge_media_to_comment', {}).get('count', 0) for post in posts)
+                                
+                                if len(posts) > 0 and profile_data['followers_count'] > 0:
+                                    profile_data['engagement_rate'] = ((total_likes + total_comments) / len(posts)) / profile_data['followers_count'] * 100
+                        
+                        # Try to determine categories
+                        categories = SocialMediaService._determine_categories(bio=profile_data.get('bio', ''))
+                        if categories:
+                            profile_data['categories'] = categories
+                            
+                        parsed_data = profile_data
+                        break
+                        
+                    # Try newer data structure
+                    elif 'graphql' in data and 'user' in data['graphql']:
+                        profile = data['graphql']['user']
+                        
+                        # Build profile data (similar to structure above)
+                        profile_data = {
+                            'platform': 'instagram',
+                            'username': profile.get('username', username),
+                            'full_name': profile.get('full_name', username),
+                            'profile_url': url,
+                            'profile_image': profile.get('profile_pic_url_hd', profile.get('profile_pic_url', '')),
+                            'bio': profile.get('biography', ''),
+                            'followers_count': profile.get('edge_followed_by', {}).get('count', 0),
+                            'following_count': profile.get('edge_follow', {}).get('count', 0),
+                            'posts_count': profile.get('edge_owner_to_timeline_media', {}).get('count', 0),
+                            'engagement_rate': 0.0,
+                            'account_type': 'verified' if profile.get('is_verified', False) else 'personal'
+                        }
+                        
+                        # Determine categories and calculate engagement similarly to above
+                        categories = SocialMediaService._determine_categories(bio=profile_data.get('bio', ''))
+                        if categories:
+                            profile_data['categories'] = categories
+                            
+                        parsed_data = profile_data
+                        break
+                        
+                except Exception as e:
+                    error_message = f"Error parsing Instagram profile JSON: {str(e)}"
+                    logger.warning(error_message)
+                    error_messages.append(error_message)
+                    continue
+            
+            # If we successfully parsed the data, return it
+            if parsed_data:
+                return parsed_data
+                
+            # If we get here, we couldn't extract the data
+            logger.warning(f"Failed to extract profile data from Instagram page for {username}")
+            
+            # Return detailed error with the specific parsing errors encountered
+            return {
+                'error': 'parsing_failed',
+                'message': 'Failed to parse Instagram profile data',
+                'details': error_messages[:3]  # Include the first few error messages for debugging
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching public Instagram data for {username}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                'error': 'unexpected_error',
+                'message': f"An unexpected error occurred while fetching Instagram data: {str(e)}"
+            }
     
     @staticmethod
     def _extract_metric_value(insights_data, metric_name):
@@ -229,11 +595,47 @@ class SocialMediaService:
         Returns:
             dict: TikTok profile data or None if error
         """
-        token_data = get_token(user_id, 'tiktok')
-        if not token_data:
-            logger.error(f"No TikTok token found for user {user_id}")
-            return None
+        logger.info(f"Fetching TikTok profile for user_id={user_id}, username={username}")
         
+        # Try to use official API first
+        try:
+            token_data = get_token(user_id, 'tiktok')
+            if token_data:
+                profile_data = SocialMediaService._fetch_tiktok_via_api(token_data, username)
+                if profile_data and 'error' not in profile_data:
+                    logger.info(f"Successfully fetched TikTok profile via official API")
+                    return profile_data
+        except Exception as e:
+            logger.warning(f"Error using official TikTok API: {str(e)}")
+        
+        # Fallback to Apify service if username is provided
+        if username:
+            try:
+                logger.info(f"Attempting to fetch TikTok profile via Apify: {username}")
+                profile_data = ApifyService.fetch_tiktok_profile(username)
+                if profile_data and 'error' not in profile_data:
+                    logger.info(f"Successfully fetched TikTok profile via Apify")
+                    return profile_data
+            except Exception as e:
+                logger.warning(f"Error fetching TikTok data via Apify: {str(e)}")
+        
+        # Fallback to scraping public data if available
+        try:
+            logger.info(f"Attempting to fetch TikTok profile via web scraping: {username}")
+            profile_data = SocialMediaService._fetch_tiktok_public_data(username)
+            if profile_data and 'error' not in profile_data:
+                logger.info(f"Successfully fetched TikTok profile via web scraping")
+                return profile_data
+        except Exception as e:
+            logger.warning(f"Error fetching public TikTok data: {str(e)}")
+            
+        # Return None if all methods fail
+        logger.error(f"All methods to fetch TikTok profile failed")
+        return None
+        
+    @staticmethod
+    def _fetch_tiktok_via_api(token_data, username=None):
+        """Fetch TikTok profile using the official API."""
         access_token = token_data['access_token']
         
         try:
@@ -291,7 +693,7 @@ class SocialMediaService:
             if video_count > 0 and followers > 0:
                 engagement = ((total_likes + total_comments + total_shares) / video_count) / followers * 100
             
-            return {
+            profile_data = {
                 'platform': 'tiktok',
                 'username': user_data.get('display_name'),
                 'full_name': user_data.get('display_name'),
@@ -313,9 +715,200 @@ class SocialMediaService:
                 }
             }
             
+            # Try to determine categories
+            categories = SocialMediaService._determine_categories(bio=user_data.get('bio_description', ''))
+            if categories:
+                profile_data['categories'] = categories
+                
+            return profile_data
+            
         except Exception as e:
             logger.error(f"Error fetching TikTok profile data: {str(e)}")
             return None
+    
+    @staticmethod
+    def _fetch_tiktok_public_data(username):
+        """
+        Fetch publicly available TikTok profile data by scraping.
+        This is a fallback method when official API access is not available.
+        
+        Note: Web scraping may be against TikTok's terms of service.
+        This should only be used for educational purposes.
+        """
+        if not username:
+            return None
+            
+        # Remove @ if present
+        username = username.replace('@', '').strip()
+        
+        try:
+            # Attempt to get public profile page
+            logger.info(f"Attempting to fetch public data for TikTok user: {username}")
+            
+            # Use a reasonably modern user agent
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+            
+            # Request profile page
+            url = f"https://www.tiktok.com/@{username}"
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            # Check for successful response
+            if response.status_code != 200:
+                logger.warning(f"Failed to fetch TikTok profile page, status: {response.status_code}")
+                return None
+                
+            # Look for JSON data in the page
+            html_content = response.text
+            
+            # TikTok typically has a JSON blob with user data
+            json_data_pattern = r'<script id="SIGI_STATE" type="application/json">(.*?)</script>'
+            json_matches = re.findall(json_data_pattern, html_content, re.DOTALL)
+            
+            if not json_matches:
+                logger.warning("Could not find profile data in TikTok page")
+                return None
+                
+            # Attempt to parse JSON data
+            try:
+                json_str = json_matches[0]
+                data = json.loads(json_str)
+                
+                # TikTok's structure varies, but often has a "UserModule" or similar
+                user_data = None
+                
+                # Try common paths for user data
+                for key in ['UserModule', 'userInfo', 'users']:
+                    if key in data:
+                        if 'users' in data[key] and username in data[key]['users']:
+                            user_data = data[key]['users'][username]
+                            break
+                        elif 'userInfo' in data[key] and 'user' in data[key]['userInfo']:
+                            user_data = data[key]['userInfo']['user']
+                            break
+                
+                if not user_data:
+                    logger.warning("Could not locate user data in TikTok JSON")
+                    return None
+                
+                # Extract profile info
+                profile_data = {
+                    'platform': 'tiktok',
+                    'username': username,
+                    'full_name': user_data.get('nickname', username),
+                    'profile_url': url,
+                    'profile_image': user_data.get('avatarLarger', user_data.get('avatarMedium', '')),
+                    'bio': user_data.get('signature', ''),
+                    'followers_count': user_data.get('followerCount', 0),
+                    'following_count': user_data.get('followingCount', 0),
+                    'posts_count': user_data.get('videoCount', 0),
+                    'engagement_rate': 0.0,  # Hard to calculate without post data
+                    'metrics': {
+                        'followers': user_data.get('followerCount', 0),
+                        'likes': user_data.get('heartCount', 0),
+                        'posts': user_data.get('videoCount', 0)
+                    }
+                }
+                
+                # Try to determine categories
+                categories = SocialMediaService._determine_categories(bio=profile_data.get('bio', ''))
+                if categories:
+                    profile_data['categories'] = categories
+                    
+                return profile_data
+                
+            except Exception as e:
+                logger.warning(f"Error parsing TikTok profile JSON: {str(e)}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error fetching public TikTok data: {str(e)}")
+            return None
+    
+    @staticmethod
+    def fetch_facebook_profile(user_id, username=None):
+        """
+        Fetch Facebook profile data for a user.
+        
+        Args:
+            user_id: The user ID to get token from
+            username: Facebook username (optional)
+            
+        Returns:
+            dict: Facebook profile data or None if error
+        """
+        logger.info(f"Fetching Facebook profile for user_id={user_id}, username={username}")
+        
+        # Try to use official API first (if implemented)
+        # try:
+        #     token_data = get_token(user_id, 'facebook')
+        #     if token_data:
+        #         # Call Facebook API using the token
+        #         pass
+        # except Exception as e:
+        #     logger.warning(f"Error using official Facebook API: {str(e)}")
+        
+        # Use Apify service if username is provided
+        if username:
+            try:
+                logger.info(f"Attempting to fetch Facebook profile via Apify: {username}")
+                profile_data = ApifyService.fetch_facebook_profile(username)
+                if profile_data and 'error' not in profile_data:
+                    logger.info(f"Successfully fetched Facebook profile via Apify")
+                    return profile_data
+            except Exception as e:
+                logger.warning(f"Error fetching Facebook data via Apify: {str(e)}")
+        
+        # If we couldn't fetch the profile, return None
+        logger.error(f"All methods to fetch Facebook profile failed")
+        return None
+    
+    @staticmethod
+    def _determine_categories(bio='', recent_content=None):
+        """
+        Determine likely categories for an influencer based on bio and content.
+        This is a simple keyword-based approach - in a production system, 
+        you would use a more sophisticated ML-based classification.
+        """
+        if recent_content is None:
+            recent_content = []
+            
+        # Combine bio and recent content for analysis
+        text = bio.lower() + ' ' + ' '.join([content.lower() for content in recent_content])
+        
+        # Dictionary of categories and their associated keywords
+        category_keywords = {
+            'lifestyle': ['lifestyle', 'life', 'daily', 'day', 'routine', 'home', 'living', 'travel'],
+            'moda': ['fashion', 'moda', 'style', 'estilo', 'clothes', 'roupa', 'outfit', 'look'],
+            'beleza': ['beauty', 'beleza', 'makeup', 'maquiagem', 'skin', 'skincare', 'pele', 'hair', 'cabelo'],
+            'família': ['family', 'família', 'mom', 'mãe', 'dad', 'pai', 'kids', 'filhos', 'baby', 'bebê'],
+            'fitness': ['fitness', 'workout', 'treino', 'gym', 'academia', 'exercise', 'exercício', 'health', 'saúde'],
+            'comida': ['food', 'comida', 'recipe', 'receita', 'cooking', 'cozinha', 'chef', 'baking'],
+            'música': ['music', 'música', 'singer', 'cantor', 'song', 'música', 'artist', 'artista'],
+            'humor': ['comedy', 'comédia', 'funny', 'engraçado', 'humor', 'joke', 'piada', 'laugh'],
+            'tecnologia': ['tech', 'technology', 'tecnologia', 'gadget', 'code', 'código', 'programming', 'developer'],
+            'gaming': ['game', 'gaming', 'gamer', 'videogame', 'streamer', 'stream'],
+            'business': ['business', 'negócio', 'entrepreneur', 'empreendedor', 'marketing', 'finance', 'finanças'],
+            'arte': ['art', 'arte', 'artist', 'artista', 'design', 'drawing', 'desenho', 'painting', 'pintura'],
+            'educação': ['education', 'educação', 'teacher', 'professor', 'learn', 'aprender', 'school', 'escola']
+        }
+        
+        # Find matching categories
+        matches = {}
+        for category, keywords in category_keywords.items():
+            score = 0
+            for keyword in keywords:
+                if keyword in text:
+                    score += 1
+            if score > 0:
+                matches[category] = score
+        
+        # Sort by score and return top categories
+        sorted_categories = sorted(matches.items(), key=lambda x: x[1], reverse=True)
+        return [category for category, score in sorted_categories[:3] if score > 0]
     
     @staticmethod
     def calculate_social_score(influencer_data):
@@ -446,8 +1039,86 @@ class SocialMediaService:
             )
             db.session.add(metric)
         
+        # Add categories if available
+        if 'categories' in profile_data and isinstance(profile_data['categories'], list):
+            for cat_name in profile_data['categories']:
+                # Check if category exists
+                category = Category.query.filter_by(name=cat_name).first()
+                if not category:
+                    # Create new category
+                    category = Category(name=cat_name, description=f"Category for {cat_name}")
+                    db.session.add(category)
+                
+                # Add category to influencer if not already present
+                if category not in influencer.categories:
+                    influencer.categories.append(category)
+        
         db.session.commit()
         return influencer
+    
+    @staticmethod
+    def find_social_media_id(platform, username, user_id=None):
+        """
+        Find the external ID for a social media account from a username.
+        
+        Args:
+            platform (str): The social media platform (instagram, facebook, tiktok)
+            username (str): The username to look up
+            user_id (int, optional): If provided, will use this user's credentials for API calls
+            
+        Returns:
+            str: The external ID if found, None otherwise
+        """
+        # First, try to find in our database
+        existing_account = Influencer.query.filter_by(
+            platform=platform,
+            username=username.replace('@', '')  # Remove @ if present
+        ).first()
+        
+        if existing_account and existing_account.id:
+            # We already have this account in our database with its ID
+            logger.info(f"Found existing {platform} account for {username} in database")
+            return str(existing_account.id)
+        
+        # Try to fetch from the platform API
+        if platform == "instagram":
+            # Try to use the API if we have a user_id with Instagram permissions
+            if user_id:
+                try:
+                    profile_data = SocialMediaService.fetch_instagram_profile(user_id, username.replace('@', ''))
+                    if profile_data and 'instagram_business_account_id' in profile_data:
+                        logger.info(f"Found Instagram ID for {username} via API")
+                        return profile_data['instagram_business_account_id']
+                except Exception as e:
+                    logger.warning(f"Error fetching Instagram profile via API: {str(e)}")
+            
+            # If we can't find via API, generate a deterministic ID based on username
+            # This is just a fallback and should be replaced with proper API integration
+            logger.warning(f"Could not find Instagram ID for {username}, generating placeholder")
+            # Remove @ if present and convert to lowercase
+            clean_username = username.replace('@', '').lower()
+            # Use a hash function to generate a consistent ID
+            import hashlib
+            return f"ig_{hashlib.md5(clean_username.encode()).hexdigest()[:16]}"
+            
+        elif platform == "facebook":
+            # Similar approach for Facebook
+            # In a real implementation, you would use the Facebook Graph API
+            clean_username = username.replace('@', '').lower()
+            import hashlib
+            return f"fb_{hashlib.md5(clean_username.encode()).hexdigest()[:16]}"
+            
+        elif platform == "tiktok":
+            # Similar approach for TikTok
+            clean_username = username.replace('@', '').lower()
+            import hashlib
+            return f"tt_{hashlib.md5(clean_username.encode()).hexdigest()[:16]}"
+        
+        # Default fallback - generate a unique ID based on the username
+        import hashlib
+        clean_username = username.replace('@', '').lower()
+        platform_prefix = platform[:2]
+        return f"{platform_prefix}_{hashlib.md5(clean_username.encode()).hexdigest()[:16]}"
     
     @staticmethod
     def analyze_sentiment(text):

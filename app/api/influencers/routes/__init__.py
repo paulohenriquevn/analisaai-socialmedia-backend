@@ -29,9 +29,8 @@ def get_influencers():
         query = query.filter_by(platform=platform)
     
     # Get paginated results
-    influencers = query.order_by(Influencer.created_at.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
+    total = query.count()
+    influencers = query.order_by(Influencer.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
     
     # Format response
     return jsonify({
@@ -46,13 +45,13 @@ def get_influencers():
                 "social_score": i.social_score,
                 "profile_image": i.profile_image
             }
-            for i in influencers.items
+            for i in influencers
         ],
-        "meta": {
-            "page": influencers.page,
-            "per_page": influencers.per_page,
-            "total": influencers.total,
-            "pages": influencers.pages
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": 0
         }
     })
 

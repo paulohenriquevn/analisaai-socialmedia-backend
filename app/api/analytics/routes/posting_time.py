@@ -39,7 +39,22 @@ def get_best_posting_times():
         
         # Check for errors
         if 'error' in result:
-            return jsonify(result), 400
+            error_status = 400
+            
+            # Map error codes to appropriate HTTP status codes
+            error_code = result.get('error')
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['not_found', 'account_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            elif error_code in ['server_error', 'api_error']:
+                error_status = 500
+                
+            return jsonify(result), error_status
         
         # Validate and serialize response
         response_schema = PostingTimeResponseSchema()
@@ -71,7 +86,22 @@ def get_content_type_performance():
         
         # Check for errors
         if 'error' in result:
-            return jsonify(result), 400
+            error_status = 400
+            
+            # Map error codes to appropriate HTTP status codes
+            error_code = result.get('error')
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['not_found', 'account_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            elif error_code in ['server_error', 'api_error']:
+                error_status = 500
+                
+            return jsonify(result), error_status
         
         # Validate and serialize response
         response_schema = ContentTypeAnalysisResponseSchema()
@@ -103,7 +133,22 @@ def get_day_of_week_analysis():
         
         # Check for errors
         if 'error' in result:
-            return jsonify(result), 400
+            error_status = 400
+            
+            # Map error codes to appropriate HTTP status codes
+            error_code = result.get('error')
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['not_found', 'account_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            elif error_code in ['server_error', 'api_error']:
+                error_status = 500
+                
+            return jsonify(result), error_status
         
         # Validate and serialize response
         response_schema = DayOfWeekAnalysisResponseSchema()
@@ -133,7 +178,22 @@ def get_industry_benchmarks():
         
         # Check for errors
         if 'error' in result:
-            return jsonify(result), 400
+            error_status = 400
+            
+            # Map error codes to appropriate HTTP status codes
+            error_code = result.get('error')
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['not_found', 'account_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            elif error_code in ['server_error', 'api_error']:
+                error_status = 500
+                
+            return jsonify(result), error_status
         
         # Validate and serialize response
         response_schema = IndustryBenchmarksResponseSchema()
@@ -165,7 +225,22 @@ def get_personalized_recommendations():
         
         # Check for errors
         if 'error' in result:
-            return jsonify(result), 400
+            error_status = 400
+            
+            # Map error codes to appropriate HTTP status codes
+            error_code = result.get('error')
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['not_found', 'account_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            elif error_code in ['server_error', 'api_error']:
+                error_status = 500
+                
+            return jsonify(result), error_status
         
         # Validate and serialize response
         response_schema = PostingTimeResponseSchema()

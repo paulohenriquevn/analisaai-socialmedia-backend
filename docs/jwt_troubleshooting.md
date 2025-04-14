@@ -1,94 +1,219 @@
-# Solução de Problemas de Autenticação JWT
+# Solucionando Problemas com Tokens JWT
 
-Este documento contém instruções sobre como resolver problemas comuns de autenticação JWT no backend do Analisa.ai Social Media.
+Este documento fornece orientações para resolver problemas comuns relacionados a autenticação e tokens JWT no sistema AnalisaAI Social Media.
 
-## Problema: Token Inválido
+## Ferramentas de Diagnóstico
 
-Quando você recebe erros "Invalid token" (Token Inválido) ao tentar acessar endpoints protegidos, mesmo após fazer login novamente, isso pode ser causado por uma das seguintes razões:
+O AnalisaAI inclui várias ferramentas para ajudar a diagnosticar e resolver problemas de autenticação:
 
-1. **JWT_SECRET_KEY alterada**: O servidor está usando uma chave secreta diferente da que foi usada para gerar o token
-2. **Conflito de cache**: A implementação de cache está interferindo na validação do token
-3. **Ordem de inicialização**: A ordem de inicialização das extensões Flask pode afetar a validação do token
-4. **Ambiente desatualizado**: Variáveis de ambiente não estão sendo carregadas corretamente
+### 1. Script de Teste de Token
 
-## Solução Rápida
-
-Para resolver problemas de JWT, execute os scripts de diagnóstico e correção:
+O script `scripts/test_token.py` permite analisar tokens JWT para verificar sua validade:
 
 ```bash
-# Teste a autenticação JWT
+# Analisar um token de acesso
+python scripts/test_token.py "seu_token_aqui"
+
+# Ler token de uma variável de ambiente
+python scripts/test_token.py --env ACCESS_TOKEN
+
+# Ler token de um arquivo
+python scripts/test_token.py --file token.txt
+```
+
+### 2. Script de Diagnóstico Completo
+
+O script `scripts/fix_jwt_issues.py` realiza diagnóstico completo e pode corrigir automaticamente problemas comuns:
+
+```bash
+# Executar diagnóstico básico
+python scripts/fix_jwt_issues.py
+
+# Testar com login específico
+python scripts/fix_jwt_issues.py --username admin --password suasenha
+
+# Analisar um token específico
+python scripts/fix_jwt_issues.py --token "seu_token_aqui"
+
+# Corrigir problemas automaticamente
+python scripts/fix_jwt_issues.py --fix
+
+# Corrigir e reiniciar o servidor
+python scripts/fix_jwt_issues.py --fix --restart
+```
+
+### 3. Script de Teste de Fluxo Completo
+
+O script `test_jwt.py` testa todo o fluxo de autenticação, incluindo login, acesso a endpoints protegidos e renovação de token:
+
+```bash
+# Testar com credenciais padrão
 python test_jwt.py
 
-# Se o teste falhar, execute o script de correção
-python fix_jwt_app.py
-
-# Reinicie a aplicação após as correções
-./restart_app.sh
-
-# Faça login novamente para obter novos tokens
+# Testar com credenciais específicas
+python test_jwt.py username senha
 ```
 
-## Verificações Manuais
+## Problema: "Invalid token"
 
-Se os scripts não resolverem o problema, verifique:
+Se você estiver recebendo o erro "Invalid token" ao tentar acessar endpoints protegidos, verifique as seguintes possibilidades:
 
-1. **Arquivo .env**: Verifique se as chaves JWT_SECRET_KEY e SECRET_KEY estão definidas corretamente
-   ```
-   JWT_SECRET_KEY=sua-chave-secreta
-   SECRET_KEY=outra-chave-secreta
-   ```
+### 1. Formato do token na requisição
 
-2. **Ordem de Inicialização**: Em `app/extensions.py`, verifique se o JWT é inicializado antes do cache
-   ```python
-   # Ordem correta:
-   jwt.init_app(app)
-   # Registrar handlers de erro JWT
-   register_jwt_handlers(jwt)
-   # Depois inicializar cache
-   cache.init_app(app)
-   ```
+**Solução**: O token de acesso deve ser enviado no formato correto:
 
-3. **Cache Personalizado**: Certifique-se que a configuração do cache não está interferindo
-   ```python
-   cache_config = {
-       'CACHE_TYPE': 'SimpleCache',
-       'CACHE_DEFAULT_TIMEOUT': 300,
-       'CACHE_KEY_PREFIX': 'analisaai_',  # Prefixo para evitar colisões
-   }
-   ```
-
-4. **Logs**: Verifique os logs em `logs/analisaai.log` para erros relacionados à JWT
-
-## Gerando Novos Tokens
-
-Se você precisar gerar novos tokens manualmente, use:
-
-```python
-from flask_jwt_extended import create_access_token, create_refresh_token
-from datetime import timedelta
-
-# Gere tokens com uma hora e 30 dias de validade respectivamente
-access_token = create_access_token(
-    identity=user_id,
-    expires_delta=timedelta(hours=1)
-)
-
-refresh_token = create_refresh_token(
-    identity=user_id, 
-    expires_delta=timedelta(days=30)
-)
+```
+Authorization: Bearer seu_token_aqui
 ```
 
-## Análise de Tokens JWT
+Verifique se:
+- O prefixo "Bearer" está presente e tem um espaço após ele
+- O token está completo e não foi truncado
+- Não há espaços ou caracteres extras no token
 
-Para depurar tokens JWT, você pode usar a ferramenta online [jwt.io](https://jwt.io/).
+**No Insomnia**:
+- Verifique a autenticação na aba "Auth"
+- Selecione "Bearer Token"
+- Cole o token access_token recebido durante o login
 
-1. Cole seu token JWT no campo esquerdo
-2. Verifique os campos `payload` e `exp` (expiração)
-3. Se quiser verificar a assinatura, insira sua `JWT_SECRET_KEY` no campo "Verify Signature"
+### 2. Expiração do token
 
-## Referências
+Os tokens de acesso expiram após 1 hora. Se o token expirou, você receberá um erro "Token has expired".
 
-- [Flask-JWT-Extended Documentation](https://flask-jwt-extended.readthedocs.io/)
-- [Documentação do Python JWT](https://pyjwt.readthedocs.io/en/latest/)
-- [Best Practices for JWT](https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/)
+**Solução**: Use o endpoint de refresh para obter um novo token de acesso.
+
+1. Acesse a rota `/api/auth/refresh` com o refresh_token no cabeçalho
+2. Copie o novo access_token retornado
+3. Atualize a variável de ambiente ACCESS_TOKEN com o novo valor
+
+Para verificar a expiração do token:
+
+```bash
+python scripts/test_token.py "seu_token_aqui"
+```
+
+### 3. Token inválido ou malformado
+
+Se você estiver usando um token incompleto, modificado ou gerado incorretamente, receberá o erro "Invalid token".
+
+**Solução**:
+1. Execute o fluxo de login novamente para obter tokens frescos
+2. Verifique se o token não foi modificado durante a cópia/colagem
+3. Verifique se não há quebras de linha ou espaços extras no token
+
+### 4. Configuração de ambiente
+
+Para testes, certifique-se de que todas as variáveis de ambiente necessárias estão definidas corretamente.
+
+**Solução**:
+1. Verifique se a SECRET_KEY e JWT_SECRET_KEY estão definidas se estiver em ambiente de produção
+2. Se estiver em ambiente de desenvolvimento, os valores padrão devem funcionar
+
+Você pode corrigir a configuração do JWT com:
+
+```bash
+python scripts/fix_jwt_issues.py --fix
+```
+
+### 5. Dicas para o Insomnia
+
+Para configurar corretamente os tokens no Insomnia:
+
+1. **Fazer login e armazenar tokens automaticamente**:
+   - Na resposta do login, clique com o botão direito do mouse no token de acesso
+   - Selecione "Set Environment Variable" e defina como ACCESS_TOKEN
+   - Repita o processo para o REFRESH_TOKEN
+
+2. **Configurar a visualização de tokens específicos**:
+   - Edite o ambiente no canto superior direito
+   - Adicione novas variáveis ACCESS_TOKEN e REFRESH_TOKEN
+   - Mantenha esses valores atualizados após cada login/refresh
+
+3. **Verificar se o token está sendo enviado**:
+   - Na requisição, vá para a aba "Timeline"
+   - Verifique se o cabeçalho Authorization está sendo enviado corretamente
+
+## Erros Comuns e Soluções
+
+### Erro: "Missing Authorization Header"
+
+**Causa**: O cabeçalho Authorization não foi enviado com a requisição.
+
+**Solução**:
+1. Certifique-se de que o cabeçalho Authorization está configurado
+2. Verifique se a autenticação está definida como Bearer Token
+3. Confira se o token está correto
+
+### Erro: "Token has expired"
+
+**Causa**: O token de acesso expirou (geralmente após 1 hora).
+
+**Solução**:
+1. Use o endpoint `/api/auth/refresh` com o refresh_token
+2. Se o refresh token também expirou, faça login novamente
+
+### Erro: "Signature verification failed"
+
+**Causa**: O token foi modificado ou a chave secreta é diferente entre o servidor e o token.
+
+**Solução**:
+1. Verifique se o token não foi alterado acidentalmente
+2. Garanta que a mesma JWT_SECRET_KEY esteja sendo usada
+3. Faça login novamente para obter novos tokens
+
+### Erro: "Invalid token type"
+
+**Causa**: Você está usando um refresh token como access token ou vice-versa.
+
+**Solução**:
+1. Verifique o tipo de token com `scripts/test_token.py`
+2. Utilize o token correto para cada tipo de endpoint
+
+## Outras dicas úteis
+
+### Testar a autenticação
+
+Para verificar rapidamente se sua autenticação está funcionando:
+
+1. Use o endpoint `/api/auth/profile` com seu token de acesso
+2. Se funcionar, você verá seus dados de usuário
+3. Se falhar, você terá uma mensagem de erro mais detalhada
+
+### Limpar cookies e armazenamento local
+
+Se estiver testando em um navegador:
+
+1. Limpe os cookies e o armazenamento local do navegador
+2. Faça login novamente para obter tokens frescos
+
+### Verificar logs do servidor
+
+Se você tiver acesso aos logs do servidor, eles geralmente contêm informações mais detalhadas sobre problemas de autenticação.
+
+Procure mensagens de erro relacionadas a:
+- JWT invalid signatures
+- Payload validation errors
+- Token expiration issues
+
+## Medidas adicionais
+
+Se nenhuma das soluções acima resolver o problema:
+
+1. **Limpe completamente o ambiente de teste**:
+   - Exclua todas as variáveis de ambiente no Insomnia
+   - Reconfigure todas as variáveis necessárias
+   - Faça login novamente para obter tokens frescos
+
+2. **Verifique a configuração do servidor**:
+   - Confirme se a configuração JWT está correta
+   - Verifique se a aplicação está usando a mesma SECRET_KEY para validação
+
+3. **Utilize o script de diagnóstico e reparo**:
+   ```bash
+   python scripts/fix_jwt_issues.py --fix --restart
+   ```
+
+4. **Contate suporte técnico**:
+   - Forneça os detalhes completos do erro
+   - Inclua capturas de tela da configuração (sem expor os tokens)
+   - Descreva as etapas exatas para reproduzir o problema

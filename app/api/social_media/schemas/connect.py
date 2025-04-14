@@ -10,8 +10,8 @@ class SocialMediaConnectRequest(Schema):
         required=True, 
         validate=validate.OneOf(["instagram", "facebook", "tiktok"])
     )
-    external_id = fields.String(required=True)
     username = fields.String(required=True)
+    external_id = fields.String(required=False)  # Now optional, will be auto-detected if not provided
 
 
 class SocialMediaConnectResponse(Schema):
@@ -22,3 +22,4 @@ class SocialMediaConnectResponse(Schema):
     external_id = fields.String()
     username = fields.String()
     created_at = fields.DateTime()
+    influencer_id = fields.Integer(allow_none=True)

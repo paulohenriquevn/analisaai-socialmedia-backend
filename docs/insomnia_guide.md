@@ -19,89 +19,136 @@ Este guia explica como utilizar a collection do Insomnia para testar as APIs do 
 A maioria dos endpoints exige autenticação. Siga estes passos para obter um token:
 
 1. **Crie uma Conta**:
-   - Use a requisição "Register" para criar uma conta
+   - Use a requisição "1.1.2 Registrar Usuário" para criar uma conta
    - Preencha username, email e password
 
 2. **Faça Login**:
-   - Use a requisição "Login" com suas credenciais
+   - Use a requisição "1.1.3 Login" com suas credenciais
    - A resposta incluirá um access_token e refresh_token
 
-3. **Configure os Tokens**:
-   - Clique no ambiente no canto superior direito
-   - Edite o ambiente e preencha ACCESS_TOKEN e REFRESH_TOKEN com os valores recebidos
+3. **Configure os Tokens Automaticamente**:
+   - Após receber a resposta do login, clique com o botão direito no valor do token
+   - Selecione "Set Environment Variable" > "ACCESS_TOKEN"
+   - Faça o mesmo para o refresh_token e defina como "REFRESH_TOKEN"
    - Todos os outros requests usarão automaticamente esses tokens
 
-4. **Atualize o Token**:
-   - Se o token expirar, use a requisição "Refresh Token"
+4. **Atualize o Token Manualmente**:
+   - Se preferir, você também pode copiar manualmente os tokens
+   - Clique no ambiente no canto superior direito
+   - Edite o ambiente e cole os valores em ACCESS_TOKEN e REFRESH_TOKEN
+
+5. **Quando o Token Expirar**:
+   - Se um token expirar (erro 401), use a requisição "1.1.4 Renovar Token"
+   - Essa requisição usará o REFRESH_TOKEN para obter um novo ACCESS_TOKEN
    - Atualize o valor do ACCESS_TOKEN no ambiente
 
-## Estrutura da Collection
+## Estrutura da Collection por Jornadas
 
-A collection está organizada nas seguintes pastas:
+A collection está organizada em três jornadas principais de usuário:
 
-### Authentication
-- Register - Criar uma nova conta
-- Login - Fazer login e obter tokens
-- Refresh Token - Atualizar o token de acesso
-- Logout - Encerrar a sessão
+### 1. Jornada de Onboarding
+Fluxo de registro, autenticação e conexão de redes sociais.
 
-### Users
-- Get Profile - Ver perfil do usuário
-- Update Profile - Atualizar informações do perfil
-- Change Password - Alterar senha
+- **1.1 Autenticação e Registro**
+  - 1.1.1 Status da Autenticação
+  - 1.1.2 Registrar Usuário
+  - 1.1.3 Login
+  - 1.1.4 Renovar Token
+  - 1.1.5 Perfil do Usuário
 
-### Influencers
-- Get Influencer - Obter detalhes de um influenciador
-- List Influencers - Listar influenciadores com filtros
+- **1.2 Conexão de Redes Sociais**
+  - 1.2.1 Conectar Facebook
+  - 1.2.2 Conectar Instagram
+  - 1.2.3 Conectar TikTok
+  - 1.2.4 Cadastrar Rede Social Manualmente
 
-### Search
-- Search Influencers - Buscar influenciadores por palavra-chave
-- Search Categories - Buscar categorias de influenciadores
+### 2. Jornada de Influenciadores
+Busca, análise e gerenciamento de influenciadores.
 
-### Analytics
-- Influencer Growth - Obter métricas de crescimento
-- Benchmarks - Obter benchmarks da plataforma
-- Recommendations - Obter recomendações de influenciadores
-- Dashboard - Obter dados consolidados do dashboard
-- Dashboard Refresh - Forçar atualização dos dados do dashboard
+- **2.1 Gerenciamento de Influenciadores**
+  - 2.1.1 Listar Influenciadores
+  - 2.1.2 Detalhes do Influenciador
+  - 2.1.3 Pesquisar Influenciador
 
-### Sentiment Analysis
-- Analyze Sentiment - Analisar sentimento de um texto
-- Get Post Comments - Obter comentários de um post com análise
-- Get Post Sentiment - Obter análise de sentimento de um post
-- Get Influencer Sentiment - Obter análise de sentimento de um influenciador
-- Fetch Post Comments - Buscar e analisar comentários de um post
-- Batch Analyze - Analisar sentimento de múltiplos textos
+- **2.2 Busca Avançada**
+  - 2.2.1 Buscar Influenciadores
+  - 2.2.2 Listar Categorias
 
-### Posting Time Optimization
-- Best Posting Times - Obter melhores horários para postagem
-- Content Type Performance - Analisar desempenho por tipo de conteúdo
-- Day of Week Analysis - Analisar desempenho por dia da semana
-- Industry Benchmarks - Obter benchmarks da indústria para horários
-- Personalized Recommendations - Obter recomendações personalizadas
+### 3. Jornada de Análise de Dados
+Análises e insights sobre performance nas redes sociais.
 
-## Exemplos de Uso
+- **3.1 Analytics Gerais**
+  - 3.1.1 Crescimento do Influenciador
+  - 3.1.2 Benchmarks de Plataforma
+  - 3.1.3 Recomendações de Influenciadores
+  - 3.1.4 Métricas Consolidadas
+  - 3.1.5 Distribuição de Plataformas
+  - 3.1.6 Insights por Categoria
 
-### Fluxo Básico de Autenticação
+- **3.2 Análise de Sentimento**
+  - 3.2.1 Analisar Sentimento
+  - 3.2.2 Comentários do Post
+  - 3.2.3 Sentimento do Post
+  - 3.2.4 Sentimento do Influenciador
+  - 3.2.5 Buscar Comentários
+  - 3.2.6 Análise em Lote
 
-1. Crie uma conta com "Register"
-2. Faça login com "Login"
-3. Copie o ACCESS_TOKEN e o REFRESH_TOKEN para o ambiente
-4. Acesse "Get Profile" para verificar se a autenticação está funcionando
+- **3.3 Otimização de Horários**
+  - 3.3.1 Melhores Horários
+  - 3.3.2 Performance por Tipo de Conteúdo
+  - 3.3.3 Análise por Dia da Semana
+  - 3.3.4 Benchmarks da Indústria
+  - 3.3.5 Recomendações Personalizadas
+
+## Criando Variáveis de Ambiente
+
+Para facilitar o uso de diferentes ambientes de desenvolvimento, você pode configurar variáveis:
+
+1. **Clique no menu suspenso de ambientes** no canto superior direito
+2. **Selecione "Manage Environments"**
+3. **Edite o ambiente "Development"**
+4. **Configure as seguintes variáveis**:
+   ```json
+   {
+     "BASE_URL": "http://localhost:5000",
+     "ACCESS_TOKEN": "",
+     "REFRESH_TOKEN": ""
+   }
+   ```
+5. **Para um ambiente de produção**, duplique e ajuste conforme necessário:
+   ```json
+   {
+     "BASE_URL": "https://api.analisaai.com",
+     "ACCESS_TOKEN": "",
+     "REFRESH_TOKEN": ""
+   }
+   ```
+
+## Exemplos de Uso Recomendados
+
+### Fluxo Completo de Onboarding
+
+1. Use "1.1.2 Registrar Usuário" para criar uma conta
+2. Use "1.1.3 Login" para obter tokens
+3. Configure os tokens no ambiente (automática ou manualmente)
+4. Use "1.1.5 Perfil do Usuário" para verificar a autenticação
+5. Use "1.2.4 Cadastrar Rede Social Manualmente" para conectar uma rede social
 
 ### Análise de Sentimentos
 
-1. Use "Analyze Sentiment" para analisar o sentimento de um texto específico
-2. Use "Get Post Sentiment" para ver a análise completa de um post (substitua o ID)
-3. Use "Batch Analyze" para analisar vários textos de uma vez
+1. Use "3.2.1 Analisar Sentimento" para análise rápida de um comentário
+2. Use "3.2.3 Sentimento do Post" para análise completa de um post
+3. Use "3.2.4 Sentimento do Influenciador" para análise de todos os posts
+4. Use "3.2.6 Análise em Lote" para processar múltiplos textos simultaneamente
 
-### Otimização de Horários
+### Otimização de Horários de Postagem
 
-1. Use "Best Posting Times" para ver os melhores horários por dia da semana
-2. Use "Content Type Performance" para analisar o desempenho por tipo de conteúdo
-3. Use "Personalized Recommendations" para obter recomendações personalizadas
+1. Use "3.3.1 Melhores Horários" para ver os melhores horários por plataforma
+2. Use "3.3.2 Performance por Tipo de Conteúdo" para um post específico
+3. Use "3.3.3 Análise por Dia da Semana" para padrões semanais
+4. Use "3.3.5 Recomendações Personalizadas" para recomendações específicas
 
-## Parâmetros e Filtros
+## Parâmetros e Filtros Comuns
 
 Muitos endpoints aceitam parâmetros para filtrar ou personalizar os resultados:
 
@@ -120,10 +167,37 @@ Muitos endpoints aceitam parâmetros para filtrar ou personalizar os resultados:
 - `min_followers`: número mínimo de seguidores
 - `min_engagement`: taxa mínima de engajamento
 
-## Solução de Problemas
+## Solução de Problemas de Autenticação
 
-- **Token Expirado**: Use "Refresh Token" para obter um novo token
-- **Erro 401**: Verifique se você configurou corretamente o ACCESS_TOKEN
-- **Erro 400**: Verifique os parâmetros da requisição
+### Erro 401 (Unauthorized)
+
+Se você receber um erro 401, verifique:
+
+1. **Formato do Token**:
+   - Certifique-se de que o token está no formato correto na aba Auth
+   - Deve estar configurado como "Bearer Token"
+   - Não deve incluir o prefixo "Bearer" manualmente
+
+2. **Validade do Token**:
+   - Use o script `scripts/test_token.py` para verificar se o token expirou:
+   ```bash
+   python scripts/test_token.py "seu_token_aqui"
+   ```
+
+3. **Renovação do Token**:
+   - Se o token expirou, use "1.1.4 Renovar Token"
+   - Atualize o valor do ACCESS_TOKEN no ambiente
+
+4. **Configuração Manual**:
+   - Se os tokens não estiverem funcionando, tente configurá-los manualmente
+   - Copie o token completo da resposta do login
+   - Verifique se não há espaços extras ou caracteres inválidos
+
+### Outros Erros Comuns
+
+- **Erro 400**: Verifique se os parâmetros da requisição estão corretos
 - **Erro 404**: Verifique se o ID do recurso existe
-- **Erro 500**: Erro interno do servidor, verifique os logs
+- **Erro 409**: Conflito (ex: tentativa de conectar uma rede social já vinculada)
+- **Erro 500**: Erro interno do servidor, verifique os logs ou contate o suporte
+
+Para problemas persistentes de autenticação, consulte o documento `token_troubleshooting_steps.md` para um guia detalhado de solução de problemas.

@@ -1,16 +1,26 @@
 #!/bin/bash
-# Restart the Flask application
-echo "Stopping current Flask application..."
-pkill -f "python run.py" || echo "No running Flask application found"
+# Script para reiniciar a aplicação Flask
 
-# Wait a moment
+echo "Parando a aplicação Flask atual..."
+pkill -f "python run.py" || echo "Nenhuma instância encontrada."
+
+# Aguarde um momento para garantir que o servidor anterior foi encerrado
 sleep 2
 
-# Start Flask app in background
-echo "Starting Flask application..."
+echo "Iniciando a aplicação Flask..."
 cd "$(dirname "$0")"
 python3 run.py > logs/flask.log 2>&1 &
 
-# Wait for startup
+# Aguarde a inicialização
 sleep 2
-echo "Flask application restarted."
+echo "Aplicação reiniciada com sucesso!"
+
+# Exiba informações úteis
+echo ""
+echo "A aplicação está rodando em: http://localhost:5000"
+echo "Logs disponíveis em: logs/flask.log"
+echo ""
+echo "Para verificar a solução para a listagem de influenciadores:"
+echo "1. Execute: python scripts/check_influencers.py"
+echo "2. Se necessário: python scripts/seed_influencers.py"
+echo "3. Teste a API: python scripts/test_api_endpoints.py"

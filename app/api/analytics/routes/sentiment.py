@@ -100,7 +100,20 @@ def get_post_sentiment(post_id):
         
         # Check for errors
         if 'error' in analysis and analysis.get('error') != "Post not found":
-            return jsonify({"error": analysis['error']}), 500
+            error_status = 500
+            error_code = analysis.get('error')
+            
+            # Map error codes to appropriate HTTP status codes
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['account_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            
+            return jsonify({"error": error_code, "message": analysis.get('message', '')}), error_status
             
         # Validate and serialize response
         response_schema = PostSentimentAnalysisSchema()
@@ -123,7 +136,20 @@ def get_influencer_sentiment(influencer_id):
         
         # Check for errors
         if 'error' in analysis:
-            return jsonify({"error": analysis['error']}), 500
+            error_status = 500
+            error_code = analysis.get('error')
+            
+            # Map error codes to appropriate HTTP status codes
+            if error_code in ['auth_error', 'token_expired']:
+                error_status = 401
+            elif error_code in ['permission_denied', 'forbidden']:
+                error_status = 403
+            elif error_code in ['not_found', 'influencer_not_found', 'profile_not_found']:
+                error_status = 404
+            elif error_code in ['rate_limit']:
+                error_status = 429
+            
+            return jsonify({"error": error_code, "message": analysis.get('message', '')}), error_status
             
         # Validate and serialize response
         response_schema = InfluencerSentimentAnalysisSchema()

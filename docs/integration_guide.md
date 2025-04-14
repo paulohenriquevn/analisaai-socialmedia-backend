@@ -22,61 +22,107 @@ All social media integrations follow a similar pattern:
 4. **Token Storage**: Access tokens are securely stored for future API calls
 5. **Data Access**: Analisa.ai can now access authorized data from the platform
 
-## Facebook Integration
+## Connection Methods
 
-[Detailed Facebook integration guide](facebook_integration.md)
+### Method 1: OAuth Flow (Recommended)
 
-### Quick Start
-
-To connect a Facebook account:
+The most secure and user-friendly approach is to use the built-in OAuth flow:
 
 1. Ensure the user is logged in to Analisa.ai
-2. Direct the user to `/api/auth/facebook`
+2. Direct the user to the appropriate endpoint:
+   - Facebook: `/api/auth/facebook`
+   - Instagram: `/api/auth/instagram`
+   - TikTok: `/api/auth/tiktok`
 3. After authorization, the user is redirected back to the application
 4. Verify the connection at `/api/users/me/connected-accounts`
 
-### Usage Example
+### Method 2: Manual Connection
 
-```javascript
-// Frontend authentication flow
-function connectFacebook() {
-  // Step 1: Check if user is authenticated in Analisa.ai
-  if (!isAuthenticated()) {
-    return redirectToLogin();
-  }
-  
-  // Step 2: Redirect to Facebook OAuth endpoint
-  window.location.href = '/api/auth/facebook';
-}
+For testing or when OAuth is not possible, you can connect accounts manually:
 
-// After redirect back to the application
-function handleAuthCallback() {
-  // Check connected accounts
-  fetch('/api/users/me/connected-accounts', {
-    headers: {
-      'Authorization': `Bearer ${userToken}`
-    }
-  })
-  .then(response => response.json())
-  .then(data => {
-    // Display connected accounts to user
-    console.log('Connected accounts:', data.connected_accounts);
-  });
+```
+POST /api/social-media/connect
+```
+
+**Autenticação**: Bearer Token (JWT)
+
+**Request Body**:
+```json
+{
+  "platform": "instagram",
+  "username": "@username"
 }
 ```
 
-### Code Implementation
+Parameters:
+- `platform`: Social media platform (instagram, facebook, tiktok)
+- `username`: Username on the platform (can include @ or not)
+- `external_id`: (Optional) External ID of the account. If not provided, the system will try to find it automatically.
 
-```python
-# Backend route handler (Flask)
-@main.route('/api/auth/facebook')
-@jwt_required()
-def facebook_auth():
-    """Initiate Facebook OAuth flow."""
-    user_id = get_jwt_identity()
-    session['user_id'] = user_id
-    redirect_uri = url_for('main.facebook_callback', _external=True)
-    return oauth.facebook.authorize_redirect(redirect_uri)
+**Response Example (201 Created)**:
+```json
+{
+  "id": 123,
+  "user_id": 456,
+  "platform": "instagram",
+  "external_id": "ig_1234567890abcdef",
+  "username": "@username",
+  "created_at": "2025-04-13T15:30:45Z"
+}
+```
+
+**Possible Errors**:
+- 400: Invalid data or unsupported platform
+- 401: Not authenticated
+- 404: User not found
+- 409: Account already linked
+
+## Automatic External ID Detection
+
+When providing only the username, the system will:
+
+1. Look for the account in the Analisa.ai database
+2. If not found, try to fetch via the platform's API (when possible)
+3. If unsuccessful, generate a consistent ID based on the username
+
+This functionality simplifies integration, as the end user doesn't need to know the technical ID of their account.
+
+## Usage Examples
+
+### Connect Instagram
+
+```bash
+curl -X POST https://api.analisaai.com/api/social-media/connect \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "instagram",
+    "username": "@my_instagram"
+  }'
+```
+
+### Connect Facebook
+
+```bash
+curl -X POST https://api.analisaai.com/api/social-media/connect \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "facebook",
+    "username": "my.facebook.page"
+  }'
+```
+
+### Connect TikTok
+
+```bash
+curl -X POST https://api.analisaai.com/api/social-media/connect \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "tiktok",
+    "username": "@my_tiktok"
+  }'
 ```
 
 ## Security Considerations
@@ -89,23 +135,6 @@ All social media access tokens are:
 2. **Stored** in the database with user association
 3. **Never** exposed to frontend clients
 4. **Automatically** refreshed when needed
-
-### Code Example
-
-```python
-# Token encryption (from security_service.py)
-def encrypt_token(token):
-    """Encrypts a token for secure storage."""
-    return cipher_suite.encrypt(token.encode()).decode()
-
-# Saving tokens securely (from oauth_service.py)
-def save_token(user_id, platform, token_data):
-    # Encrypt sensitive token data
-    encrypted_access_token = encrypt_token(token_data['access_token'])
-    
-    # Store in database
-    # ...
-```
 
 ## Best Practices
 
