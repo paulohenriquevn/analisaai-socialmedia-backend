@@ -6,11 +6,18 @@ import logging
 from app.services.social_media_service import SocialMediaService
 from app.models import SocialPage
 
+# Create a separate blueprint for sync routes
+bp_sync = Blueprint('social_media_sync', __name__)
+
+# Import the main blueprint to register this blueprint
 from app.api.social_media import bp
+
+# Register this blueprint with the main blueprint
+bp.register_blueprint(bp_sync)
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/sync-social-pages', methods=['POST'])
+@bp_sync.route('/sync-social-pages', methods=['POST'])
 @jwt_required()
 def sync_social_pages():
     """
@@ -89,7 +96,7 @@ def sync_social_pages():
                     
                 # Update the social_page data if successful
                 if profile_data and 'error' not in profile_data:
-                    updated_social_page = SocialMediaService.save_social_page_data(profile_data)
+                    updated_social_page = SocialMediaService.save_social_page_data(profile_data, current_user_id)
                     
                     # Calculate engagement and reach metrics
                     if updated_social_page:
@@ -158,7 +165,7 @@ def sync_social_pages():
             "message": f"Error syncing social_page: {str(e)}"
         }), 500
 
-@bp.route('/sync-social-page/<int:social_page_id>', methods=['POST'])
+@bp_sync.route('/sync-social-page/<int:social_page_id>', methods=['POST'])
 @jwt_required()
 def sync_single_social_page(social_page_id):
     """
@@ -202,7 +209,7 @@ def sync_single_social_page(social_page_id):
         
         # Update the social_page data if successful
         if profile_data and 'error' not in profile_data:
-            updated_social_page = SocialMediaService.save_social_page_data(profile_data)
+            updated_social_page = SocialMediaService.save_social_page_data(profile_data, current_user_id)
             
             # Calculate metrics
             engagement_metrics_result = None

@@ -131,8 +131,8 @@ def lookup_social_page():
     if not profile_data:
         return jsonify({"error": f"Failed to fetch {platform} profile for {username}"}), 400
     
-    # Save social_page data to database
-    social_page = SocialMediaService.save_social_page_data(profile_data)
+    # Save social_page data to database with the current user as owner
+    social_page = SocialMediaService.save_social_page_data(profile_data, user_id)
     
     if not social_page:
         return jsonify({"error": "Failed to save social_page data"}), 500

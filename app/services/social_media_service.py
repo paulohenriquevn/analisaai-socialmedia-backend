@@ -969,12 +969,13 @@ class SocialMediaService:
         return score
     
     @staticmethod
-    def save_social_page_data(profile_data):
+    def save_social_page_data(profile_data, user_id=None):
         """
         Save or update social_page profile data in the database.
         
         Args:
             profile_data: Dict containing social_page profile data
+            user_id: Optional ID of the user who owns this social page
             
         Returns:
             social_page: Saved social_page object
@@ -989,11 +990,18 @@ class SocialMediaService:
             logger.error(f"Missing required fields in profile data: platform or username")
             return None
         
-        # Check if social_page already exists
-        social_page = SocialPage.query.filter_by(
+        # Build query to check if social_page already exists
+        query = SocialPage.query.filter_by(
             platform=platform,
             username=username
-        ).first()
+        )
+        
+        # If user_id is provided, also filter by user_id
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+            
+        # Check if social_page already exists
+        social_page = query.first()
         
         # Calculate social score
         social_score = SocialMediaService.calculate_social_score(profile_data)
@@ -1025,7 +1033,8 @@ class SocialMediaService:
                     following_count=profile_data.get('following_count', 0),
                     posts_count=profile_data.get('posts_count', 0),
                     engagement_rate=profile_data.get('engagement_rate', 0),
-                    social_score=social_score
+                    social_score=social_score,
+                    user_id=user_id  # Set the user_id if provided
                 )
                 db.session.add(social_page)
                 logger.info(f"Created new social_page: {username} on {platform}")

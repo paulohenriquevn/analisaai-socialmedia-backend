@@ -28,12 +28,12 @@ def get_engagement_metrics(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if social_page exists
-    social_page = SocialPage.query.get(social_page_id)
+    # Check if social_page exists and belongs to the current user
+    social_page = SocialPage.query.filter_by(id=social_page_id, user_id=current_user_id).first()
     if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"social_page with ID {social_page_id} not found"
+            "message": f"Social page with ID {social_page_id} not found or you don't have permission to access it"
         }), 404
     
     # Parse date parameters
@@ -109,12 +109,12 @@ def calculate_engagement(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if social_page exists
-    social_page = SocialPage.query.get(social_page_id)
+    # Check if social_page exists and belongs to the current user
+    social_page = SocialPage.query.filter_by(id=social_page_id, user_id=current_user_id).first()
     if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"social_page with ID {social_page_id} not found"
+            "message": f"Social page with ID {social_page_id} not found or you don't have permission to access it"
         }), 404
     
     # Calculate metrics
@@ -147,12 +147,12 @@ def calculate_engagement(social_page_id):
 @bp.route('/calculate-all', methods=['POST'])
 @jwt_required()
 def calculate_all_engagement():
-    """Calculate engagement metrics for all social_page."""
+    """Calculate engagement metrics for all social pages owned by the current user."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Calculate metrics for all social_page
-    results = EngagementService.calculate_all_social_pages_metrics()
+    # Calculate metrics for all social pages owned by the current user
+    results = EngagementService.calculate_all_social_pages_metrics(current_user_id)
     
     return jsonify({
         "status": "success",

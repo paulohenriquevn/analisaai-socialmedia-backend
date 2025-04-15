@@ -9,11 +9,18 @@ from app.models.user import User
 from app.api.social_media.schemas.connect import SocialMediaConnectRequest, SocialMediaConnectResponse, EngagementMetricsSchema
 from app.services.social_media_service import SocialMediaService
 
+# Create a separate blueprint for connect routes
+bp_connect = Blueprint('social_media_connect', __name__)
+
+# Import the main blueprint to register this blueprint
 from app.api.social_media import bp
+
+# Register this blueprint with the main blueprint
+bp.register_blueprint(bp_connect)
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/connect', methods=['POST'])
+@bp_connect.route('/connect', methods=['POST'])
 @jwt_required()
 def connect_social_media():
     """Connect a social media account to the authenticated user."""

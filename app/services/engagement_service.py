@@ -171,14 +171,26 @@ class EngagementService:
         return query.all()
     
     @staticmethod
-    def calculate_all_social_pages_metrics():
+    def calculate_all_social_pages_metrics(user_id=None):
         """
         Calculate engagement metrics for all SocialPages.
         
+        Args:
+            user_id: Optional user ID to filter social pages by owner
+            
         Returns:
             dict: Summary of the calculation results
         """
-        social_pages = SocialPage.query.all()
+        # Build query
+        query = SocialPage.query
+        
+        # If user_id is provided, filter by user_id
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+            
+        # Get all social pages (filtered by user_id if provided)
+        social_pages = query.all()
+        
         results = {
             'total': len(social_pages),
             'success': 0,

@@ -28,12 +28,12 @@ def get_reach_metrics(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if social_page exists
-    social_page = SocialPage.query.get(social_page_id)
+    # Check if social_page exists and belongs to the current user
+    social_page = SocialPage.query.filter_by(id=social_page_id, user_id=current_user_id).first()
     if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"social_page with ID {social_page_id} not found"
+            "message": f"Social page with ID {social_page_id} not found or you don't have permission to access it"
         }), 404
     
     # Parse date parameters
@@ -111,12 +111,12 @@ def calculate_reach(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if social_page exists
-    social_page = SocialPage.query.get(social_page_id)
+    # Check if social_page exists and belongs to the current user
+    social_page = SocialPage.query.filter_by(id=social_page_id, user_id=current_user_id).first()
     if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"social_page with ID {social_page_id} not found"
+            "message": f"Social page with ID {social_page_id} not found or you don't have permission to access it"
         }), 404
     
     # Calculate metrics
@@ -140,12 +140,12 @@ def calculate_reach(social_page_id):
 @bp.route('/calculate-all', methods=['POST'])
 @jwt_required()
 def calculate_all_reach():
-    """Calculate reach metrics for all social_pages."""
+    """Calculate reach metrics for all social pages owned by the current user."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Calculate metrics for all social_pages
-    results = ReachService.calculate_all_social_pages_reach()
+    # Calculate metrics for all social pages owned by the current user
+    results = ReachService.calculate_all_social_pages_reach(current_user_id)
     
     return jsonify({
         "status": "success",

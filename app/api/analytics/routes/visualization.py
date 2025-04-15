@@ -2,6 +2,7 @@
 Routes for visualization data.
 """
 from flask import Blueprint, jsonify, request
+from app.models import SocialPage
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 from marshmallow import ValidationError
@@ -16,6 +17,8 @@ from app.api.analytics.schemas import (
     ComparisonVisualizationSchema
 )
 
+
+
 # Create blueprint
 bp = Blueprint('visualization', __name__)
 
@@ -25,6 +28,17 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def get_engagement_visualization(social_page_id):
     """Get engagement metrics visualization data for a specific social_page."""
+    # Get current user
+    current_user_id = get_jwt_identity()
+    
+    # Check if social_page exists and belongs to the current user
+    social_page = SocialPage.query.filter_by(id=social_page_id, user_id=current_user_id).first()
+    if not social_page:
+        return jsonify({
+            "status": "error",
+            "message": f"Social page with ID {social_page_id} not found or you don't have permission to access it"
+        }), 404
+    
     # Get time range parameter (default: 30 days)
     time_range = request.args.get('time_range', 30, type=int)
     
@@ -34,7 +48,7 @@ def get_engagement_visualization(social_page_id):
     if not visualization_data:
         return jsonify({
             "status": "error",
-            "message": f"Failed to get engagement visualization data for social_page {social_page_id}"
+            "message": f"Failed to get engagement visualization data for social page {social_page_id}"
         }), 404
     
     try:
@@ -54,6 +68,17 @@ def get_engagement_visualization(social_page_id):
 @jwt_required()
 def get_reach_visualization(social_page_id):
     """Get reach metrics visualization data for a specific social_page."""
+    # Get current user
+    current_user_id = get_jwt_identity()
+    
+    # Check if social_page exists and belongs to the current user
+    social_page = SocialPage.query.filter_by(id=social_page_id, user_id=current_user_id).first()
+    if not social_page:
+        return jsonify({
+            "status": "error",
+            "message": f"Social page with ID {social_page_id} not found or you don't have permission to access it"
+        }), 404
+    
     # Get time range parameter (default: 30 days)
     time_range = request.args.get('time_range', 30, type=int)
     
@@ -63,7 +88,7 @@ def get_reach_visualization(social_page_id):
     if not visualization_data:
         return jsonify({
             "status": "error",
-            "message": f"Failed to get reach visualization data for social_page {social_page_id}"
+            "message": f"Failed to get reach visualization data for social page {social_page_id}"
         }), 404
     
     try:

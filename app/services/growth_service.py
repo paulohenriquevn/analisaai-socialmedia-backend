@@ -33,7 +33,7 @@ class GrowthService:
             
             # Current and past metrics
             current_date = date.today()
-            current_followers = SocialPage.followers_count
+            current_followers = social_page.followers_count
             
             # Get historical metrics to calculate growth
             growth_metrics = GrowthService.get_historical_metrics(social_page_id, current_date)
@@ -338,14 +338,26 @@ class GrowthService:
         return query.all()
     
     @staticmethod
-    def calculate_all_social_pages_growth():
+    def calculate_all_social_pages_growth(user_id=None):
         """
         Calculate growth metrics for all social_pages.
         
+        Args:
+            user_id: Optional user ID to filter social pages by owner
+            
         Returns:
             dict: Summary of the calculation results
         """
-        social_pages = SocialPage.query.all()
+        # Build query
+        query = SocialPage.query
+        
+        # If user_id is provided, filter by user_id
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+            
+        # Get all social pages (filtered by user_id if provided)
+        social_pages = query.all()
+        
         results = {
             'total': len(social_pages),
             'success': 0,
