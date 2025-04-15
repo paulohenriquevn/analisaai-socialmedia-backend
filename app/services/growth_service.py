@@ -3,10 +3,8 @@ Service for calculating and processing growth metrics for influencers.
 """
 import logging
 from datetime import datetime, date, timedelta
-import numpy as np
 from app.extensions import db
-from app.models.influencer import Influencer
-from app.models.growth import InfluencerGrowth
+from app.models import SocialPage, SocialPageGrowth
 
 logger = logging.getLogger(__name__)
 
@@ -14,23 +12,23 @@ class GrowthService:
     """Service for calculating and tracking growth metrics."""
     
     @staticmethod
-    def calculate_growth_metrics(influencer_id):
+    def calculate_growth_metrics(social_page_id):
         """
         Calculate growth metrics for a specific influencer.
         
         Args:
-            influencer_id: ID of the influencer to calculate metrics for
+            social_page_id: ID of the influencer to calculate metrics for
             
         Returns:
             dict: The calculated growth metrics or None if error
         """
         try:
-            logger.info(f"Calculating growth metrics for influencer ID: {influencer_id}")
+            logger.info(f"Calculating growth metrics for influencer ID: {social_page_id}")
             
             # Get the influencer
-            influencer = Influencer.query.get(influencer_id)
+            influencer = SocialPage.query.get(social_page_id)
             if not influencer:
-                logger.error(f"Influencer with ID {influencer_id} not found")
+                logger.error(f"Influencer with ID {social_page_id} not found")
                 return None
             
             # Current and past metrics
@@ -38,7 +36,7 @@ class GrowthService:
             current_followers = influencer.followers_count
             
             # Get historical metrics to calculate growth
-            growth_metrics = GrowthService.get_historical_metrics(influencer_id, current_date)
+            growth_metrics = GrowthService.get_historical_metrics(social_page_id, current_date)
             
             # Calculate new followers
             new_followers_daily = 0
@@ -90,8 +88,8 @@ class GrowthService:
                     churn_rate = estimated_daily_churn
             
             # Calculate growth velocity and acceleration
-            growth_velocity = GrowthService.calculate_growth_velocity(influencer_id, current_date)
-            growth_acceleration = GrowthService.calculate_growth_acceleration(influencer_id, current_date)
+            growth_velocity = GrowthService.calculate_growth_velocity(social_page_id, current_date)
+            growth_acceleration = GrowthService.calculate_growth_acceleration(social_page_id, current_date)
             
             # Calculate projections
             projected_followers_30d = GrowthService.project_followers(current_followers, daily_growth_rate, 30)
@@ -99,7 +97,7 @@ class GrowthService:
             
             # Create metrics data
             metrics = {
-                'influencer_id': influencer_id,
+                'social_page_id': social_page_id,
                 'date': current_date,
                 'followers_count': current_followers,
                 'new_followers_daily': new_followers_daily,
@@ -119,25 +117,25 @@ class GrowthService:
             # Save the metrics
             result = GrowthService.save_growth_metrics(metrics)
             if result:
-                logger.info(f"Successfully saved growth metrics for influencer {influencer_id}")
+                logger.info(f"Successfully saved growth metrics for influencer {social_page_id}")
                 return metrics
             else:
-                logger.error(f"Failed to save growth metrics for influencer {influencer_id}")
+                logger.error(f"Failed to save growth metrics for influencer {social_page_id}")
                 return None
             
         except Exception as e:
-            logger.error(f"Error calculating growth metrics for influencer {influencer_id}: {str(e)}")
+            logger.error(f"Error calculating growth metrics for influencer {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
     
     @staticmethod
-    def get_historical_metrics(influencer_id, end_date=None, days=30):
+    def get_historical_metrics(social_page_id, end_date=None, days=30):
         """
         Get historical growth metrics for an influencer.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the influencer
             end_date: End date for data retrieval (defaults to today)
             days: Number of days of history to retrieve
             
@@ -150,21 +148,21 @@ class GrowthService:
         start_date = end_date - timedelta(days=days)
         
         # Get stored growth metrics
-        growth_metrics = InfluencerGrowth.query.filter(
-            InfluencerGrowth.influencer_id == influencer_id,
-            InfluencerGrowth.date >= start_date,
-            InfluencerGrowth.date <= end_date
-        ).order_by(InfluencerGrowth.date.desc()).all()
+        growth_metrics = SocialPageGrowth.query.filter(
+            SocialPageGrowth.social_page_id == social_page_id,
+            SocialPageGrowth.date >= start_date,
+            SocialPageGrowth.date <= end_date
+        ).order_by(SocialPageGrowth.date.desc()).all()
         
         return growth_metrics
     
     @staticmethod
-    def calculate_growth_velocity(influencer_id, current_date=None, days=7):
+    def calculate_growth_velocity(social_page_id, current_date=None, days=7):
         """
         Calculate growth velocity (average daily follower growth) over a period.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the influencer
             current_date: Current date (defaults to today)
             days: Number of days to analyze
             
@@ -177,32 +175,32 @@ class GrowthService:
         start_date = current_date - timedelta(days=days)
         
         # Get start and end metrics
-        start_metrics = InfluencerGrowth.query.filter(
-            InfluencerGrowth.influencer_id == influencer_id,
-            InfluencerGrowth.date == start_date
+        start_metrics = SocialPageGrowth.query.filter(
+            SocialPageGrowth.social_page_id == social_page_id,
+            SocialPageGrowth.date == start_date
         ).first()
         
-        end_metrics = InfluencerGrowth.query.filter(
-            InfluencerGrowth.influencer_id == influencer_id,
-            InfluencerGrowth.date == current_date
+        end_metrics = SocialPageGrowth.query.filter(
+            SocialPageGrowth.social_page_id == social_page_id,
+            SocialPageGrowth.date == current_date
         ).first()
         
         # If we don't have both metrics, try using the influencer's current count
         # and the oldest available metric in the range
         if not start_metrics or not end_metrics:
             # Get the influencer
-            influencer = Influencer.query.get(influencer_id)
+            influencer = Influencer.query.get(social_page_id)
             if not influencer:
                 return 0.0
                 
             end_followers = influencer.followers_count
             
             # Find the oldest available metric in our date range
-            oldest_metric = InfluencerGrowth.query.filter(
-                InfluencerGrowth.influencer_id == influencer_id,
-                InfluencerGrowth.date >= start_date,
-                InfluencerGrowth.date <= current_date
-            ).order_by(InfluencerGrowth.date.asc()).first()
+            oldest_metric = SocialPageGrowth.query.filter(
+                SocialPageGrowth.social_page_id == social_page_id,
+                SocialPageGrowth.date >= start_date,
+                SocialPageGrowth.date <= current_date
+            ).order_by(SocialPageGrowth.date.asc()).first()
             
             if oldest_metric:
                 start_followers = oldest_metric.followers_count
@@ -224,12 +222,12 @@ class GrowthService:
         return 0.0
     
     @staticmethod
-    def calculate_growth_acceleration(influencer_id, current_date=None):
+    def calculate_growth_acceleration(social_page_id, current_date=None):
         """
         Calculate growth acceleration (change in velocity) over time.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the influencer
             current_date: Current date (defaults to today)
             
         Returns:
@@ -240,13 +238,13 @@ class GrowthService:
             
         # Calculate current velocity (last 7 days)
         current_velocity = GrowthService.calculate_growth_velocity(
-            influencer_id, current_date, days=7
+            social_page_id, current_date, days=7
         )
         
         # Calculate previous velocity (7 days before that)
         previous_period_end = current_date - timedelta(days=7)
         previous_velocity = GrowthService.calculate_growth_velocity(
-            influencer_id, previous_period_end, days=7
+            social_page_id, previous_period_end, days=7
         )
         
         # Calculate acceleration (change in velocity)
@@ -284,25 +282,25 @@ class GrowthService:
             metrics_data: Dict containing growth metrics
             
         Returns:
-            InfluencerGrowth: Saved growth metrics record or None if error
+            SocialPageGrowth: Saved growth metrics record or None if error
         """
         try:
             # Check if metrics for this influencer and date already exist
-            existing = InfluencerGrowth.query.filter_by(
-                influencer_id=metrics_data['influencer_id'],
+            existing = SocialPageGrowth.query.filter_by(
+                social_page_id=metrics_data['social_page_id'],
                 date=metrics_data['date']
             ).first()
             
             if existing:
                 # Update existing metrics
                 for key, value in metrics_data.items():
-                    if key != 'influencer_id' and key != 'date' and hasattr(existing, key):
+                    if key != 'social_page_id' and key != 'date' and hasattr(existing, key):
                         setattr(existing, key, value)
                 existing.updated_at = datetime.utcnow()
                 growth_record = existing
             else:
                 # Create new metrics record
-                growth_record = InfluencerGrowth(**metrics_data)
+                growth_record = SocialPageGrowth(**metrics_data)
                 db.session.add(growth_record)
             
             db.session.commit()
@@ -314,28 +312,28 @@ class GrowthService:
             return None
     
     @staticmethod
-    def get_growth_metrics(influencer_id, start_date=None, end_date=None):
+    def get_growth_metrics(social_page_id, start_date=None, end_date=None):
         """
         Get growth metrics for an influencer within a date range.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the influencer
             start_date: Start date for metrics (optional)
             end_date: End date for metrics (optional)
             
         Returns:
             list: List of growth metrics or empty list if none found
         """
-        query = InfluencerGrowth.query.filter_by(influencer_id=influencer_id)
+        query = SocialPageGrowth.query.filter_by(social_page_id=social_page_id)
         
         if start_date:
-            query = query.filter(InfluencerGrowth.date >= start_date)
+            query = query.filter(SocialPageGrowth.date >= start_date)
         
         if end_date:
-            query = query.filter(InfluencerGrowth.date <= end_date)
+            query = query.filter(SocialPageGrowth.date <= end_date)
         
         # Order by date (most recent first)
-        query = query.order_by(InfluencerGrowth.date.desc())
+        query = query.order_by(SocialPageGrowth.date.desc())
         
         return query.all()
     

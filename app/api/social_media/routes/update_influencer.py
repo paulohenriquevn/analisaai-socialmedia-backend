@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 
 from app.extensions import db
-from app.models.influencer import Influencer, Category, InfluencerMetric
+from app.models import SocialPage, SocialPageCategory, SocialPageMetric
 from app.api.social_media import bp
 from app.services.engagement_service import EngagementService
 from app.services.social_media_service import SocialMediaService
@@ -14,14 +14,14 @@ from app.services.apify_service import ApifyService
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/influencer/<int:influencer_id>', methods=['PUT'])
+@bp.route('/influencer/<int:social_page_id>', methods=['PUT'])
 @jwt_required()
-def update_influencer(influencer_id):
+def update_influencer(social_page_id):
     """Update details for an influencer."""
     user_id = get_jwt_identity()
     
     # Find the influencer
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({"error": "Influencer not found"}), 404
     
@@ -64,9 +64,9 @@ def update_influencer(influencer_id):
         categories = []
         for category_name in data['categories']:
             # Look up or create each category
-            category = Category.query.filter_by(name=category_name).first()
+            category = SocialPageCategory.query.filter_by(name=category_name).first()
             if not category:
-                category = Category(name=category_name, description=f"Category for {category_name}")
+                category = SocialPageCategory(name=category_name, description=f"Category for {category_name}")
                 db.session.add(category)
             categories.append(category)
         influencer.categories = categories
@@ -83,8 +83,8 @@ def update_influencer(influencer_id):
             today = datetime.utcnow().date()
             
             # Check if we already have metrics for today
-            existing_metric = InfluencerMetric.query.filter_by(
-                influencer_id=influencer.id,
+            existing_metric = SocialPageMetric.query.filter_by(
+                social_page_id=influencer.id,
                 date=today
             ).first()
             
@@ -107,8 +107,8 @@ def update_influencer(influencer_id):
                     existing_metric.views = data['views']
             else:
                 # Create new metric with whatever data we have
-                metric = InfluencerMetric(
-                    influencer_id=influencer.id,
+                metric = SocialPageMetric(
+                    social_page_id=influencer.id,
                     date=today,
                     followers=influencer.followers_count,
                     engagement=influencer.engagement_rate,
@@ -275,9 +275,9 @@ def update_influencer(influencer_id):
     return jsonify(response)
 
 
-@bp.route('/influencer/<int:influencer_id>/refresh', methods=['POST'])
+@bp.route('/influencer/<int:social_page_id>/refresh', methods=['POST'])
 @jwt_required()
-def refresh_influencer_data(influencer_id):
+def refresh_influencer_data(social_page_id):
     """
     Refresh influencer data and fetch recent posts.
     
@@ -288,12 +288,12 @@ def refresh_influencer_data(influencer_id):
     4. Return the updated influencer data
     """
     user_id = get_jwt_identity()
-    logger.info(f"User {user_id} requested refresh of influencer {influencer_id}")
+    logger.info(f"User {user_id} requested refresh of influencer {social_page_id}")
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
-        return jsonify({"error": f"Influencer with ID {influencer_id} not found"}), 404
+        return jsonify({"error": f"Influencer with ID {social_page_id} not found"}), 404
     
     # Get refresh options from request
     refresh_options = request.json or {}
@@ -324,14 +324,14 @@ def refresh_influencer_data(influencer_id):
         posts_count = 0
         if fetch_posts:
             # Check if we have recent posts
-            recent_posts = SocialMediaService.fetch_influencer_recent_posts(influencer_id, days=7)
+            recent_posts = SocialMediaService.fetch_influencer_recent_posts(social_page_id, days=7)
             
             # If we have fewer posts than expected or post fetching is explicitly requested
             if len(recent_posts) < 5 or refresh_options.get('force_fetch_posts', False):
                 # Get more posts from the API
                 if 'recent_media' in profile_data and profile_data['recent_media']:
                     posts_count = SocialMediaService.save_recent_posts(
-                        influencer_id, 
+                        social_page_id, 
                         profile_data['recent_media'], 
                         influencer.platform
                     )
@@ -359,26 +359,26 @@ def refresh_influencer_data(influencer_id):
         return jsonify(response_data), 200
         
     except Exception as e:
-        logger.error(f"Error refreshing influencer {influencer_id}: {str(e)}")
+        logger.error(f"Error refreshing influencer {social_page_id}: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
-@bp.route('/influencer/<int:influencer_id>/fetch-posts', methods=['POST'])
+@bp.route('/influencer/<int:social_page_id>/fetch-posts', methods=['POST'])
 @jwt_required()
-def fetch_posts(influencer_id):
+def fetch_posts(social_page_id):
     """
     Fetch and save recent posts for an influencer.
     """
     user_id = get_jwt_identity()
-    logger.info(f"User {user_id} requested post fetch for influencer {influencer_id}")
+    logger.info(f"User {user_id} requested post fetch for influencer {social_page_id}")
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
-        return jsonify({"error": f"Influencer with ID {influencer_id} not found"}), 404
+        return jsonify({"error": f"Influencer with ID {social_page_id} not found"}), 404
     
     try:
         # Fetch the latest profile data to get recent posts
@@ -399,7 +399,7 @@ def fetch_posts(influencer_id):
         posts_count = 0
         if 'recent_media' in profile_data and profile_data['recent_media']:
             posts_count = SocialMediaService.save_recent_posts(
-                influencer_id, 
+                social_page_id, 
                 profile_data['recent_media'], 
                 influencer.platform
             )
@@ -411,7 +411,7 @@ def fetch_posts(influencer_id):
         }), 200
         
     except Exception as e:
-        logger.error(f"Error fetching posts for influencer {influencer_id}: {str(e)}")
+        logger.error(f"Error fetching posts for influencer {social_page_id}: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         
@@ -438,14 +438,14 @@ def fetch_posts_for_all():
     
     try:
         # Build query to get influencers
-        query = Influencer.query
+        query = SocialPage.query
         
         # Filter by platform if specified
         if platform:
             query = query.filter_by(platform=platform)
         
         # Order by last updated (oldest first)
-        query = query.order_by(Influencer.updated_at.asc())
+        query = query.order_by(SocialPage.updated_at.asc())
         
         # Apply limit if specified
         if limit and isinstance(limit, int) and limit > 0:
@@ -481,7 +481,7 @@ def fetch_posts_for_all():
                     profile_data = ApifyService.fetch_facebook_profile(influencer.username)
                 else:
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "username": influencer.username,
                         "platform": influencer.platform,
                         "status": "error",
@@ -493,7 +493,7 @@ def fetch_posts_for_all():
                 if not profile_data or 'error' in profile_data:
                     error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "username": influencer.username,
                         "platform": influencer.platform,
                         "status": "error",
@@ -516,7 +516,7 @@ def fetch_posts_for_all():
                 
                 if posts_count > 0:
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "username": influencer.username,
                         "platform": influencer.platform,
                         "status": "success",
@@ -525,7 +525,7 @@ def fetch_posts_for_all():
                     results["successful"] += 1
                 else:
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "username": influencer.username,
                         "platform": influencer.platform,
                         "status": "warning",
@@ -536,7 +536,7 @@ def fetch_posts_for_all():
             except Exception as e:
                 logger.error(f"Error processing influencer {influencer.id}: {str(e)}")
                 results["details"].append({
-                    "influencer_id": influencer.id,
+                    "social_page_id": influencer.id,
                     "username": influencer.username,
                     "platform": influencer.platform,
                     "status": "error",

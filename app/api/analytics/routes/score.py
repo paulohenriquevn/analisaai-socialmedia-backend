@@ -6,8 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 from datetime import datetime, timedelta
 
-from app.models.influencer import Influencer
-from app.models.score import InfluencerScore
+from app.models import SocialPage, SocialPageScore
 from app.services.score_service import ScoreService
 
 # Create blueprint
@@ -15,9 +14,9 @@ bp = Blueprint('score', __name__)
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/metrics/<int:influencer_id>', methods=['GET'])
+@bp.route('/metrics/<int:social_page_id>', methods=['GET'])
 @jwt_required()
-def get_score_metrics(influencer_id):
+def get_score_metrics(social_page_id):
     """
     Get relevance score metrics for a specific influencer.
     
@@ -30,11 +29,11 @@ def get_score_metrics(influencer_id):
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -75,7 +74,7 @@ def get_score_metrics(influencer_id):
                 }), 400
     
     # Get metrics from database
-    metrics = ScoreService.get_score_metrics(influencer_id, start_date, end_date)
+    metrics = ScoreService.get_score_metrics(social_page_id, start_date, end_date)
     
     # Format response
     result = []
@@ -106,23 +105,23 @@ def get_score_metrics(influencer_id):
         "metrics": result
     })
 
-@bp.route('/calculate/<int:influencer_id>', methods=['POST'])
+@bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def calculate_score(influencer_id):
+def calculate_score(social_page_id):
     """Calculate and save relevance score for an influencer."""
     # Get current user
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
-    metrics = ScoreService.calculate_relevance_score(influencer_id)
+    metrics = ScoreService.calculate_relevance_score(social_page_id)
     
     if not metrics:
         return jsonify({
@@ -171,30 +170,30 @@ def compare_scores():
     Compare relevance scores of multiple influencers.
     
     Required query parameters:
-    - influencer_ids: Comma-separated list of influencer IDs to compare
+    - social_page_ids: Comma-separated list of influencer IDs to compare
     """
     # Get current user
     current_user_id = get_jwt_identity()
     
     # Get influencer IDs from request
-    influencer_ids_param = request.args.get('influencer_ids')
-    if not influencer_ids_param:
+    social_page_ids_param = request.args.get('social_page_ids')
+    if not social_page_ids_param:
         return jsonify({
             "status": "error",
-            "message": "Missing required parameter: influencer_ids"
+            "message": "Missing required parameter: social_page_ids"
         }), 400
     
     # Parse influencer IDs
     try:
-        influencer_ids = [int(id_str) for id_str in influencer_ids_param.split(',')]
+        social_page_ids = [int(id_str) for id_str in social_page_ids_param.split(',')]
     except ValueError:
         return jsonify({
             "status": "error",
-            "message": "Invalid influencer_ids format. Must be comma-separated integers."
+            "message": "Invalid social_page_ids format. Must be comma-separated integers."
         }), 400
     
     # Get influencers with their scores
-    influencers = Influencer.query.filter(Influencer.id.in_(influencer_ids)).all()
+    influencers = SocialPage.query.filter(SocialPage.id.in_(social_page_ids)).all()
     
     # Format response
     result = []

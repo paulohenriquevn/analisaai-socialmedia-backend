@@ -10,7 +10,7 @@ import html
 import time
 from datetime import datetime, timedelta
 from app.extensions import db
-from app.models import Influencer, InfluencerMetric, Category
+from app.models import SocialPage, SocialPageMetric, SocialPageCategory
 from app.services.oauth_service import get_token
 from app.services.apify_service import ApifyService
 
@@ -990,7 +990,7 @@ class SocialMediaService:
             return None
         
         # Check if influencer already exists
-        influencer = Influencer.query.filter_by(
+        influencer = SocialPage.query.filter_by(
             platform=platform,
             username=username
         ).first()
@@ -1014,7 +1014,7 @@ class SocialMediaService:
         else:
             # Create new influencer
             try:
-                influencer = Influencer(
+                influencer = SocialPage(
                     username=username,
                     full_name=profile_data.get('full_name'),
                     platform=platform,
@@ -1040,7 +1040,7 @@ class SocialMediaService:
             if metrics:
                 # Check if we already have metrics for today
                 today = datetime.utcnow().date()
-                existing_metric = InfluencerMetric.query.filter_by(
+                existing_metric = SocialPageMetric.query.filter_by(
                     influencer=influencer,
                     date=today
                 ).first()
@@ -1064,7 +1064,7 @@ class SocialMediaService:
                     logger.info(f"Updated existing metrics for {username} on {platform}")
                 else:
                     # Create new metric
-                    metric = InfluencerMetric(
+                    metric = SocialPageMetric(
                         influencer=influencer,
                         date=today,
                         followers=metrics.get('followers'),
@@ -1082,10 +1082,10 @@ class SocialMediaService:
             if 'categories' in profile_data and isinstance(profile_data['categories'], list):
                 for cat_name in profile_data['categories']:
                     # Check if category exists
-                    category = Category.query.filter_by(name=cat_name).first()
+                    category = SocialPageCategory.query.filter_by(name=cat_name).first()
                     if not category:
                         # Create new category
-                        category = Category(name=cat_name, description=f"Category for {cat_name}")
+                        category = SocialPageCategory(name=cat_name, description=f"Category for {cat_name}")
                         db.session.add(category)
                     
                     # Add category to influencer if not already present
@@ -1225,7 +1225,7 @@ class SocialMediaService:
                 )
                 
                 # Fetch the influencer to get follower count
-                influencer = Influencer.query.get(influencer_id)
+                influencer = SocialPage.query.get(influencer_id)
                 if influencer and influencer.followers_count > 0:
                     engagement_rate = (total_engagement / influencer.followers_count) * 100
                 
@@ -1369,7 +1369,7 @@ class SocialMediaService:
             str: The external ID if found, None otherwise
         """
         # First, try to find in our database
-        existing_account = Influencer.query.filter_by(
+        existing_account = SocialPage.query.filter_by(
             platform=platform,
             username=username.replace('@', '')  # Remove @ if present
         ).first()

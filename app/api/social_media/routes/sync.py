@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 
 from app.services.social_media_service import SocialMediaService
-from app.models.influencer import Influencer
+from app.models import SocialPage
 
 from app.api.social_media import bp
 
@@ -21,19 +21,19 @@ def sync_influencers():
     
     # Get request parameters
     data = request.json or {}
-    influencer_ids = data.get('influencer_ids', [])  # Optional list of specific influencer IDs to sync
+    social_page_ids = data.get('social_page_ids', [])  # Optional list of specific influencer IDs to sync
     limit = data.get('limit', 100)  # Maximum number of influencers to sync
     
     try:
         # Get influencers to sync
-        query = Influencer.query
+        query = SocialPage.query
         
         # Filter by specific IDs if provided
-        if influencer_ids:
-            query = query.filter(Influencer.id.in_(influencer_ids))
+        if social_page_ids:
+            query = query.filter(SocialPage.id.in_(social_page_ids))
             
         # Order by last updated time (oldest first)
-        query = query.order_by(Influencer.updated_at.asc())
+        query = query.order_by(SocialPage.updated_at.asc())
         
         # Apply limit
         influencers = query.limit(limit).all()
@@ -60,7 +60,7 @@ def sync_influencers():
             if not platform or not username:
                 results["failed"] += 1
                 results["details"].append({
-                    "influencer_id": influencer.id,
+                    "social_page_id": influencer.id,
                     "status": "failed",
                     "message": "Missing platform or username"
                 })
@@ -79,7 +79,7 @@ def sync_influencers():
                 else:
                     results["failed"] += 1
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "platform": platform,
                         "username": username,
                         "status": "failed",
@@ -118,7 +118,7 @@ def sync_influencers():
                     
                     results["success"] += 1
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "platform": platform,
                         "username": username,
                         "status": "success",
@@ -129,7 +129,7 @@ def sync_influencers():
                     error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch data'
                     results["failed"] += 1
                     results["details"].append({
-                        "influencer_id": influencer.id,
+                        "social_page_id": influencer.id,
                         "platform": platform,
                         "username": username,
                         "status": "failed",
@@ -139,7 +139,7 @@ def sync_influencers():
             except Exception as e:
                 results["failed"] += 1
                 results["details"].append({
-                    "influencer_id": influencer.id,
+                    "social_page_id": influencer.id,
                     "platform": platform,
                     "username": username,
                     "status": "failed",
@@ -158,9 +158,9 @@ def sync_influencers():
             "message": f"Error syncing influencers: {str(e)}"
         }), 500
 
-@bp.route('/sync-influencer/<int:influencer_id>', methods=['POST'])
+@bp.route('/sync-influencer/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def sync_single_influencer(influencer_id):
+def sync_single_influencer(social_page_id):
     """
     Sync a single influencer by ID.
     """
@@ -168,12 +168,12 @@ def sync_single_influencer(influencer_id):
     
     try:
         # Get the influencer
-        influencer = Influencer.query.get(influencer_id)
+        influencer = SocialPage.query.get(social_page_id)
         
         if not influencer:
             return jsonify({
                 "status": "error",
-                "message": f"Influencer with ID {influencer_id} not found"
+                "message": f"Influencer with ID {social_page_id} not found"
             }), 404
         
         platform = influencer.platform

@@ -17,7 +17,7 @@ sys.path.append(parent_dir)
 # Import Flask app and required modules
 from app import create_app
 from app.extensions import db
-from app.models.influencer import Influencer
+from app.models.social_page import Influencer
 from app.services.apify_service import ApifyService
 from app.services.social_media_service import SocialMediaService
 

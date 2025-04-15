@@ -6,15 +6,13 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 
 from app.services.sentiment_service import SentimentService
-from app.services.social_media_service import SocialMediaService
 from app.api.analytics.schemas import (
     SentimentAnalysisRequestSchema, 
     SentimentAnalysisResponseSchema,
     PostSentimentAnalysisSchema,
     InfluencerSentimentAnalysisSchema
 )
-from app.models import SocialPost, PostComment, Influencer, SocialToken
-from app.extensions import db
+from app.models import SocialPagePost, SocialPagePostComment
 from app.services.oauth_service import get_token
 
 # Create blueprint
@@ -62,7 +60,7 @@ def get_post_comments(post_id):
             return jsonify({"error": "Post not found"}), 404
         
         # Get all comments
-        comments = PostComment.query.filter_by(post_id=post.id).all()
+        comments = SocialPagePostComment.query.filter_by(post_id=post.id).all()
         
         # Format comments
         formatted_comments = []
@@ -167,7 +165,7 @@ def fetch_post_comments(post_id):
         user_id = int(get_jwt_identity())
         
         # Get the post
-        post = SocialPost.query.get(post_id)
+        post = SocialPagePost.query.get(post_id)
         if not post:
             return jsonify({"error": "Post not found"}), 404
             

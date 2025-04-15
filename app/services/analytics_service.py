@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from app.extensions import db, cache
-from app.models import Influencer, InfluencerMetric, SocialToken, User, Organization, Category
+from app.models import SocialPage, SocialPageMetric, SocialToken, User, Organization, SocialPageCategory
 from sqlalchemy import func, desc
 import logging
 
@@ -15,12 +15,12 @@ class AnalyticsService:
     """Service for calculating and analyzing social media metrics."""
     
     @staticmethod
-    def get_influencer_growth(influencer_id, time_range=30):
+    def get_influencer_growth(social_page_id, time_range=30):
         """
         Calculate growth metrics for an influencer over a specified time range.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the influencer
             time_range: Number of days to analyze (default: 30)
             
         Returns:
@@ -28,7 +28,7 @@ class AnalyticsService:
         """
         try:
             # Get influencer
-            influencer = Influencer.query.get(influencer_id)
+            influencer = SocialPage.query.get(social_page_id)
             if not influencer:
                 return None
             
@@ -36,11 +36,11 @@ class AnalyticsService:
             end_date = datetime.utcnow().date()
             start_date = end_date - timedelta(days=time_range)
             
-            metrics = InfluencerMetric.query.filter(
-                InfluencerMetric.influencer_id == influencer_id,
-                InfluencerMetric.date >= start_date,
-                InfluencerMetric.date <= end_date
-            ).order_by(InfluencerMetric.date).all()
+            metrics = SocialPageMetric.query.filter(
+                SocialPageMetric.social_page_id == social_page_id,
+                SocialPageMetric.date >= start_date,
+                SocialPageMetric.date <= end_date
+            ).order_by(SocialPageMetric.date).all()
             
             if not metrics or len(metrics) < 2:
                 return {
@@ -122,11 +122,11 @@ class AnalyticsService:
         """
         try:
             # Build query
-            query = Influencer.query.filter_by(platform=platform)
+            query = SocialPage.query.filter_by(platform=platform)
             
             # Apply category filter if provided
             if category:
-                query = query.join(Influencer.categories).filter_by(name=category)
+                query = query.join(SocialPage.categories).filter_by(name=category)
             
             # Get influencers
             influencers = query.all()
@@ -197,7 +197,7 @@ class AnalyticsService:
         """
         try:
             # Build query
-            query = Influencer.query
+            query = SocialPage.query
             
             # Apply filters if provided
             if filters:
@@ -205,16 +205,16 @@ class AnalyticsService:
                     query = query.filter_by(platform=filters['platform'])
                 
                 if 'category' in filters:
-                    query = query.join(Influencer.categories).filter_by(name=filters['category'])
+                    query = query.join(SocialPage.categories).filter_by(name=filters['category'])
                 
                 if 'min_followers' in filters:
-                    query = query.filter(Influencer.followers_count >= filters['min_followers'])
+                    query = query.filter(SocialPage.followers_count >= filters['min_followers'])
                 
                 if 'min_engagement' in filters:
-                    query = query.filter(Influencer.engagement_rate >= filters['min_engagement'])
+                    query = query.filter(SocialPage.engagement_rate >= filters['min_engagement'])
             
             # Order by social score and limit to top 10
-            influencers = query.order_by(Influencer.social_score.desc()).limit(10).all()
+            influencers = query.order_by(SocialPage.social_score.desc()).limit(10).all()
             
             # Format response
             recommendations = []
@@ -302,10 +302,10 @@ class AnalyticsService:
             
             for platform in connected_platforms:
                 # Query metrics data for this platform
-                metrics = InfluencerMetric.query.join(Influencer).filter(
-                    Influencer.platform == platform,
-                    InfluencerMetric.date >= start_date.date()
-                ).order_by(InfluencerMetric.date).all()
+                metrics = SocialPageMetric.query.join(SocialPage).filter(
+                    SocialPage.platform == platform,
+                    SocialPageMetric.date >= start_date.date()
+                ).order_by(SocialPageMetric.date).all()
                 
                 if not metrics:
                     platform_metrics[platform] = {
@@ -424,11 +424,11 @@ class AnalyticsService:
         try:
             # Get counts by platform
             platform_counts = db.session.query(
-                Influencer.platform,
-                func.count(Influencer.id).label('count'),
-                func.avg(Influencer.followers_count).label('avg_followers'),
-                func.avg(Influencer.engagement_rate).label('avg_engagement')
-            ).group_by(Influencer.platform).all()
+                SocialPage.platform,
+                func.count(SocialPage.id).label('count'),
+                func.avg(SocialPage.followers_count).label('avg_followers'),
+                func.avg(SocialPage.engagement_rate).label('avg_engagement')
+            ).group_by(SocialPage.platform).all()
             
             result = {
                 'counts': {},
@@ -470,7 +470,7 @@ class AnalyticsService:
         """
         try:
             # Get all categories
-            categories = Category.query.all()
+            categories = SocialPageCategory.query.all()
             
             result = {
                 'categories': {},

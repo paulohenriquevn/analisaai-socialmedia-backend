@@ -4,8 +4,7 @@ Service for calculating and processing reach metrics for influencers.
 import logging
 from datetime import datetime, date, timedelta
 from app.extensions import db
-from app.models.influencer import Influencer
-from app.models.reach import InfluencerReach
+from app.models import SocialPage, SocialPageReach
 from app.services.oauth_service import get_token
 
 logger = logging.getLogger(__name__)
@@ -14,29 +13,29 @@ class ReachService:
     """Service for calculating and tracking reach metrics."""
     
     @staticmethod
-    def calculate_reach_metrics(influencer_id, user_id=None):
+    def calculate_reach_metrics(social_page_id, user_id=None):
         """
         Calculate reach metrics for a specific influencer.
         
         Args:
-            influencer_id: ID of the influencer to calculate metrics for
+            social_page_id: ID of the influencer to calculate metrics for
             user_id: Optional user ID to get account tokens
             
         Returns:
             dict: The calculated reach metrics or None if error
         """
         try:
-            logger.info(f"Calculating reach metrics for influencer ID: {influencer_id}")
+            logger.info(f"Calculating reach metrics for influencer ID: {social_page_id}")
             
             # Get the influencer
-            influencer = Influencer.query.get(influencer_id)
+            influencer = SocialPage.query.get(social_page_id)
             if not influencer:
-                logger.error(f"Influencer with ID {influencer_id} not found")
+                logger.error(f"Influencer with ID {social_page_id} not found")
                 return None
             
             # Metrics structure to be populated
             metrics = {
-                'influencer_id': influencer_id,
+                'social_page_id': social_page_id,
                 'date': date.today(),
                 'timestamp': datetime.utcnow(),
                 'impressions': 0,
@@ -57,15 +56,15 @@ class ReachService:
             
             # Platform-specific data collection
             if platform == 'instagram':
-                instagram_metrics = ReachService._fetch_instagram_reach_metrics(influencer_id, username, user_id)
+                instagram_metrics = ReachService._fetch_instagram_reach_metrics(social_page_id, username, user_id)
                 if instagram_metrics:
                     metrics.update(instagram_metrics)
             elif platform == 'facebook':
-                facebook_metrics = ReachService._fetch_facebook_reach_metrics(influencer_id, username, user_id)
+                facebook_metrics = ReachService._fetch_facebook_reach_metrics(social_page_id, username, user_id)
                 if facebook_metrics:
                     metrics.update(facebook_metrics)
             elif platform == 'tiktok':
-                tiktok_metrics = ReachService._fetch_tiktok_reach_metrics(influencer_id, username, user_id)
+                tiktok_metrics = ReachService._fetch_tiktok_reach_metrics(social_page_id, username, user_id)
                 if tiktok_metrics:
                     metrics.update(tiktok_metrics)
             else:
@@ -73,7 +72,7 @@ class ReachService:
             
             # Calculate audience growth if we have previous metrics
             previous_reach = InfluencerReach.query.filter(
-                InfluencerReach.influencer_id == influencer_id,
+                InfluencerReach.social_page_id == social_page_id,
                 InfluencerReach.date < metrics['date']
             ).order_by(InfluencerReach.date.desc()).first()
             
@@ -84,20 +83,20 @@ class ReachService:
             # Save the metrics
             result = ReachService.save_reach_metrics(metrics)
             if result:
-                logger.info(f"Successfully saved reach metrics for influencer {influencer_id}")
+                logger.info(f"Successfully saved reach metrics for influencer {social_page_id}")
                 return metrics
             else:
-                logger.error(f"Failed to save reach metrics for influencer {influencer_id}")
+                logger.error(f"Failed to save reach metrics for influencer {social_page_id}")
                 return None
             
         except Exception as e:
-            logger.error(f"Error calculating reach metrics for influencer {influencer_id}: {str(e)}")
+            logger.error(f"Error calculating reach metrics for influencer {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
     
     @staticmethod
-    def _fetch_instagram_reach_metrics(influencer_id, username, user_id=None):
+    def _fetch_instagram_reach_metrics(social_page_id, username, user_id=None):
         """
         Fetch reach metrics from Instagram API.
         
@@ -105,9 +104,9 @@ class ReachService:
         estimates based on available data if API access is not available.
         """
         # Get the influencer first
-        influencer = Influencer.query.get(influencer_id)
+        influencer = SocialPage.query.get(social_page_id)
         if not influencer:
-            logger.error(f"Influencer with ID {influencer_id} not found")
+            logger.error(f"Influencer with ID {social_page_id} not found")
             return None
         try:
             # Try to use official API if we have user_id and tokens
@@ -241,12 +240,12 @@ class ReachService:
             
             # Fallback: Estimate reach based on followers and engagement
             # This is a simplified estimation and not as accurate as API data
-            from app.models.engagement import InfluencerEngagement
+            from app.models import SocialPageEngagement
             
             # Get latest engagement metrics
-            engagement = InfluencerEngagement.query.filter_by(
-                influencer_id=influencer_id
-            ).order_by(InfluencerEngagement.date.desc()).first()
+            engagement = SocialPageEngagement.query.filter_by(
+                social_page_id=social_page_id
+            ).order_by(SocialPageEngagement.date.desc()).first()
             
             if engagement and influencer.followers_count > 0:
                 # Estimate reach as a percentage of followers 
@@ -280,14 +279,14 @@ class ReachService:
             return None
     
     @staticmethod
-    def _fetch_facebook_reach_metrics(influencer_id, username, user_id=None):
+    def _fetch_facebook_reach_metrics(social_page_id, username, user_id=None):
         """
         Fetch reach metrics from Facebook API or estimate them.
         """
         # Get the influencer first
-        influencer = Influencer.query.get(influencer_id)
+        influencer = Influencer.query.get(social_page_id)
         if not influencer:
-            logger.error(f"Influencer with ID {influencer_id} not found")
+            logger.error(f"Influencer with ID {social_page_id} not found")
             return None
         try:
             # Try to use official API if we have user_id and tokens
@@ -303,12 +302,12 @@ class ReachService:
             
             # Fallback: Estimate reach based on followers and engagement
             # This is a simplified estimation and not as accurate as API data
-            from app.models.engagement import InfluencerEngagement
+            from app.models import SocialPageEngagement
             
             # Get latest engagement metrics
-            engagement = InfluencerEngagement.query.filter_by(
-                influencer_id=influencer_id
-            ).order_by(InfluencerEngagement.date.desc()).first()
+            engagement = SocialPageEngagement.query.filter_by(
+                social_page_id=social_page_id
+            ).order_by(SocialPageEngagement.date.desc()).first()
             
             if engagement and influencer.followers_count > 0:
                 # Facebook typically has lower organic reach than Instagram
@@ -343,14 +342,14 @@ class ReachService:
             return None
     
     @staticmethod
-    def _fetch_tiktok_reach_metrics(influencer_id, username, user_id=None):
+    def _fetch_tiktok_reach_metrics(social_page_id, username, user_id=None):
         """
         Fetch reach metrics from TikTok API or estimate them.
         """
         # Get the influencer first
-        influencer = Influencer.query.get(influencer_id)
+        influencer = SocialPage.query.get(social_page_id)
         if not influencer:
-            logger.error(f"Influencer with ID {influencer_id} not found")
+            logger.error(f"Influencer with ID {social_page_id} not found")
             return None
         try:
             # Try to use official API if we have user_id and tokens
@@ -365,12 +364,12 @@ class ReachService:
             
             # Fallback: Estimate reach based on followers and engagement
             # This is a simplified estimation and not as accurate as API data
-            from app.models.engagement import InfluencerEngagement
+            from app.models import SocialPageEngagement
             
             # Get latest engagement metrics
-            engagement = InfluencerEngagement.query.filter_by(
-                influencer_id=influencer_id
-            ).order_by(InfluencerEngagement.date.desc()).first()
+            engagement = SocialPageEngagement.query.filter_by(
+                social_page_id=social_page_id
+            ).order_by(SocialPageEngagement.date.desc()).first()
             
             if engagement and influencer.followers_count > 0:
                 # TikTok has higher reach due to the For You Page algorithm
@@ -424,21 +423,21 @@ class ReachService:
         """
         try:
             # Check if metrics for this influencer and date already exist
-            existing = InfluencerReach.query.filter_by(
-                influencer_id=metrics_data['influencer_id'],
+            existing = SocialPageReach.query.filter_by(
+                social_page_id=metrics_data['social_page_id'],
                 date=metrics_data['date']
             ).first()
             
             if existing:
                 # Update existing metrics
                 for key, value in metrics_data.items():
-                    if key != 'influencer_id' and key != 'date' and hasattr(existing, key):
+                    if key != 'social_page_id' and key != 'date' and hasattr(existing, key):
                         setattr(existing, key, value)
                 existing.updated_at = datetime.utcnow()
                 reach_record = existing
             else:
                 # Create new metrics record
-                reach_record = InfluencerReach(**metrics_data)
+                reach_record = SocialPageReach(**metrics_data)
                 db.session.add(reach_record)
             
             db.session.commit()
@@ -450,28 +449,28 @@ class ReachService:
             return None
     
     @staticmethod
-    def get_reach_metrics(influencer_id, start_date=None, end_date=None):
+    def get_reach_metrics(social_page_id, start_date=None, end_date=None):
         """
         Get reach metrics for an influencer within a date range.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the influencer
             start_date: Start date for metrics (optional)
             end_date: End date for metrics (optional)
             
         Returns:
             list: List of reach metrics or empty list if none found
         """
-        query = InfluencerReach.query.filter_by(influencer_id=influencer_id)
+        query = SocialPageReach.query.filter_by(social_page_id=social_page_id)
         
         if start_date:
-            query = query.filter(InfluencerReach.date >= start_date)
+            query = query.filter(SocialPageReach.date >= start_date)
         
         if end_date:
-            query = query.filter(InfluencerReach.date <= end_date)
+            query = query.filter(SocialPageReach.date <= end_date)
         
         # Order by date (most recent first)
-        query = query.order_by(InfluencerReach.date.desc())
+        query = query.order_by(SocialPageReach.date.desc())
         
         return query.all()
     
@@ -483,7 +482,7 @@ class ReachService:
         Returns:
             dict: Summary of the calculation results
         """
-        influencers = Influencer.query.all()
+        influencers = SocialPage.query.all()
         results = {
             'total': len(influencers),
             'success': 0,

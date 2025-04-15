@@ -6,8 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 from datetime import datetime, timedelta, date
 
-from app.models.influencer import Influencer
-from app.models.reach import InfluencerReach
+from app.models import SocialPage, SocialPageReach
 from app.services.reach_service import ReachService
 
 # Create blueprint
@@ -15,9 +14,9 @@ bp = Blueprint('reach', __name__)
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/metrics/<int:influencer_id>', methods=['GET'])
+@bp.route('/metrics/<int:social_page_id>', methods=['GET'])
 @jwt_required()
-def get_reach_metrics(influencer_id):
+def get_reach_metrics(social_page_id):
     """
     Get reach metrics for a specific influencer.
     
@@ -30,11 +29,11 @@ def get_reach_metrics(influencer_id):
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -75,7 +74,7 @@ def get_reach_metrics(influencer_id):
                 }), 400
     
     # Get metrics from database
-    metrics = ReachService.get_reach_metrics(influencer_id, start_date, end_date)
+    metrics = ReachService.get_reach_metrics(social_page_id, start_date, end_date)
     
     # Format response
     result = []
@@ -105,23 +104,23 @@ def get_reach_metrics(influencer_id):
         "metrics": result
     })
 
-@bp.route('/calculate/<int:influencer_id>', methods=['POST'])
+@bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def calculate_reach(influencer_id):
+def calculate_reach(social_page_id):
     """Calculate and save reach metrics for an influencer."""
     # Get current user
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
-    metrics = ReachService.calculate_reach_metrics(influencer_id, current_user_id)
+    metrics = ReachService.calculate_reach_metrics(social_page_id, current_user_id)
     
     if not metrics:
         return jsonify({

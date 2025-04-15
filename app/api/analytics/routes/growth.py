@@ -6,8 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 from datetime import datetime, timedelta
 
-from app.models.influencer import Influencer
-from app.models.growth import InfluencerGrowth
+from app.models import SocialPage, SocialPageGrowth
 from app.services.growth_service import GrowthService
 
 # Create blueprint
@@ -15,9 +14,9 @@ bp = Blueprint('growth', __name__)
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/metrics/<int:influencer_id>', methods=['GET'])
+@bp.route('/metrics/<int:social_page_id>', methods=['GET'])
 @jwt_required()
-def get_growth_metrics(influencer_id):
+def get_growth_metrics(social_page_id):
     """
     Get growth metrics for a specific influencer.
     
@@ -30,11 +29,11 @@ def get_growth_metrics(influencer_id):
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -75,7 +74,7 @@ def get_growth_metrics(influencer_id):
                 }), 400
     
     # Get metrics from database
-    metrics = GrowthService.get_growth_metrics(influencer_id, start_date, end_date)
+    metrics = GrowthService.get_growth_metrics(social_page_id, start_date, end_date)
     
     # Format response
     result = []
@@ -108,23 +107,23 @@ def get_growth_metrics(influencer_id):
         "metrics": result
     })
 
-@bp.route('/calculate/<int:influencer_id>', methods=['POST'])
+@bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def calculate_growth(influencer_id):
+def calculate_growth(social_page_id):
     """Calculate and save growth metrics for an influencer."""
     # Get current user
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
-    metrics = GrowthService.calculate_growth_metrics(influencer_id)
+    metrics = GrowthService.calculate_growth_metrics(social_page_id)
     
     if not metrics:
         return jsonify({

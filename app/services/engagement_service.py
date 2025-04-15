@@ -1,11 +1,10 @@
 """
-Service for calculating and processing engagement metrics for influencers.
+Service for calculating and processing engagement metrics for SocialPages.
 """
 import logging
 from datetime import datetime, date, timedelta
 from app.extensions import db
-from app.models.influencer import Influencer, InfluencerMetric
-from app.models.engagement import InfluencerEngagement
+from app.models import SocialPage, SocialPageMetric, SocialPageEngagement
 
 logger = logging.getLogger(__name__)
 
@@ -13,39 +12,39 @@ class EngagementService:
     """Service for calculating and tracking engagement metrics."""
     
     @staticmethod
-    def calculate_engagement_metrics(influencer_id):
+    def calculate_engagement_metrics(social_page_id):
         """
-        Calculate engagement metrics for a specific influencer.
+        Calculate engagement metrics for a specific SocialPage.
         
         Args:
-            influencer_id: ID of the influencer to calculate metrics for
+            social_page_id: ID of the SocialPage to calculate metrics for
             
         Returns:
             dict: The calculated engagement metrics or None if error
         """
         try:
-            logger.info(f"Calculating engagement metrics for influencer ID: {influencer_id}")
+            logger.info(f"Calculating engagement metrics for SocialPage ID: {social_page_id}")
             
-            # Get the influencer
-            influencer = Influencer.query.get(influencer_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {influencer_id} not found")
+            # Get the SocialPage
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"SocialPage with ID {social_page_id} not found")
                 return None
                 
             # Get latest metrics data
-            latest_metric = InfluencerMetric.query.filter_by(
-                influencer_id=influencer_id
-            ).order_by(InfluencerMetric.date.desc()).first()
+            latest_metric = SocialPageMetric.query.filter_by(
+                social_page_id=social_page_id
+            ).order_by(SocialPageMetric.date.desc()).first()
             
             if not latest_metric:
-                logger.warning(f"No metrics data available for influencer {influencer_id}")
+                logger.warning(f"No metrics data available for SocialPage {social_page_id}")
                 
-                # Create basic metrics using the influencer data
+                # Create basic metrics using the SocialPage data
                 engagement_metrics = {
-                    'influencer_id': influencer_id,
+                    'social_page_id': social_page_id,
                     'date': date.today(),
-                    'posts_count': influencer.posts_count or 0,
-                    'engagement_rate': influencer.engagement_rate or 0.0,
+                    'posts_count': social_page.posts_count or 0,
+                    'engagement_rate': social_page.engagement_rate or 0.0,
                     'total_likes': 0,
                     'total_comments': 0,
                     'total_shares': 0,
@@ -56,7 +55,7 @@ class EngagementService:
                 }
             else:
                 # Use the metrics data to calculate engagement
-                posts_count = latest_metric.posts or influencer.posts_count or 0
+                posts_count = latest_metric.posts or social_page.posts_count or 0
                 
                 # Calculate average metrics per post
                 avg_likes = latest_metric.likes / posts_count if posts_count > 0 and latest_metric.likes else 0
@@ -64,10 +63,10 @@ class EngagementService:
                 avg_shares = latest_metric.shares / posts_count if posts_count > 0 and latest_metric.shares else 0
                 
                 # Calculate follower growth rate
-                previous_metric = InfluencerMetric.query.filter(
-                    InfluencerMetric.influencer_id == influencer_id,
-                    InfluencerMetric.date < latest_metric.date
-                ).order_by(InfluencerMetric.date.desc()).first()
+                previous_metric = SocialPageMetric.query.filter(
+                    SocialPageMetric.social_page_id == social_page_id,
+                    SocialPageMetric.date < latest_metric.date
+                ).order_by(SocialPageMetric.date.desc()).first()
                 
                 growth_rate = 0.0
                 if previous_metric and previous_metric.followers > 0:
@@ -75,10 +74,10 @@ class EngagementService:
                 
                 # Create engagement metrics dict
                 engagement_metrics = {
-                    'influencer_id': influencer_id,
+                    'social_page_id': social_page_id,
                     'date': latest_metric.date,
                     'posts_count': posts_count,
-                    'engagement_rate': latest_metric.engagement or influencer.engagement_rate or 0.0,
+                    'engagement_rate': latest_metric.engagement or social_page.engagement_rate or 0.0,
                     'total_likes': latest_metric.likes or 0,
                     'total_comments': latest_metric.comments or 0,
                     'total_shares': latest_metric.shares or 0,
@@ -97,12 +96,12 @@ class EngagementService:
             
             # Save the engagement metrics
             result = EngagementService.save_engagement_metrics(engagement_metrics)
-            logger.info(f"Saved engagement metrics for influencer {influencer_id}")
+            logger.info(f"Saved engagement metrics for SocialPage {social_page_id}")
             
             return engagement_metrics
             
         except Exception as e:
-            logger.error(f"Error calculating engagement metrics for influencer {influencer_id}: {str(e)}")
+            logger.error(f"Error calculating engagement metrics for SocialPage {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -116,25 +115,25 @@ class EngagementService:
             metrics_data: Dict containing engagement metrics
             
         Returns:
-            InfluencerEngagement: Saved engagement record or None if error
+            SocialPageEngagement: Saved engagement record or None if error
         """
         try:
-            # Check if metrics for this influencer and date already exist
-            existing = InfluencerEngagement.query.filter_by(
-                influencer_id=metrics_data['influencer_id'],
+            # Check if metrics for this SocialPage and date already exist
+            existing = SocialPageEngagement.query.filter_by(
+                social_page_id=metrics_data['social_page_id'],
                 date=metrics_data['date']
             ).first()
             
             if existing:
                 # Update existing metrics
                 for key, value in metrics_data.items():
-                    if key != 'influencer_id' and key != 'date' and hasattr(existing, key):
+                    if key != 'social_page_id' and key != 'date' and hasattr(existing, key):
                         setattr(existing, key, value)
                 existing.updated_at = datetime.utcnow()
                 engagement = existing
             else:
                 # Create new metrics record
-                engagement = InfluencerEngagement(**metrics_data)
+                engagement = SocialPageEngagement(**metrics_data)
                 db.session.add(engagement)
             
             db.session.commit()
@@ -146,49 +145,49 @@ class EngagementService:
             return None
     
     @staticmethod
-    def get_engagement_metrics(influencer_id, start_date=None, end_date=None):
+    def get_engagement_metrics(social_page_id, start_date=None, end_date=None):
         """
-        Get engagement metrics for an influencer within a date range.
+        Get engagement metrics for an SocialPage within a date range.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the SocialPage
             start_date: Start date for metrics (optional)
             end_date: End date for metrics (optional)
             
         Returns:
             list: List of engagement metrics or empty list if none found
         """
-        query = InfluencerEngagement.query.filter_by(influencer_id=influencer_id)
+        query = SocialPageEngagement.query.filter_by(social_page_id=social_page_id)
         
         if start_date:
-            query = query.filter(InfluencerEngagement.date >= start_date)
+            query = query.filter(SocialPageEngagement.date >= start_date)
         
         if end_date:
-            query = query.filter(InfluencerEngagement.date <= end_date)
+            query = query.filter(SocialPageEngagement.date <= end_date)
         
         # Order by date (most recent first)
-        query = query.order_by(InfluencerEngagement.date.desc())
+        query = query.order_by(SocialPageEngagement.date.desc())
         
         return query.all()
     
     @staticmethod
-    def calculate_all_influencers_metrics():
+    def calculate_all_SocialPages_metrics():
         """
-        Calculate engagement metrics for all influencers.
+        Calculate engagement metrics for all SocialPages.
         
         Returns:
             dict: Summary of the calculation results
         """
-        influencers = Influencer.query.all()
+        social_pages = SocialPage.query.all()
         results = {
-            'total': len(influencers),
+            'total': len(social_pages),
             'success': 0,
             'failed': 0
         }
         
-        for influencer in influencers:
+        for social_page in social_pages:
             try:
-                metrics = EngagementService.calculate_engagement_metrics(influencer.id)
+                metrics = EngagementService.calculate_engagement_metrics(social_page.id)
                 if metrics:
                     results['success'] += 1
                 else:

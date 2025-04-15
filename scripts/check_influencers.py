@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Importe após ajustar o path
 from app import create_app
-from app.models.influencer import Influencer
+from app.models.social_page import Influencer
 from app.extensions import db
 
 # Crie uma instância do app

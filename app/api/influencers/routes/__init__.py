@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.extensions import db
-from app.models import Influencer, Category, InfluencerMetric
+from app.models import SocialPage, SocialPageCategory, SocialPageMetric
 from app.services.oauth_service import get_token
 from app.services.social_media_service import SocialMediaService
 
@@ -23,11 +23,11 @@ def get_influencers():
     user_id = int(get_jwt_identity())
     
     # Build query
-    query = Influencer.query.filter_by(user_id=user_id)
+    query = SocialPage.query.filter_by(user_id=user_id)
     
     # Get paginated results
     total = query.count()
-    influencers = query.order_by(Influencer.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
+    influencers = query.order_by(SocialPage.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
     
     # Format response
     return jsonify({
@@ -57,13 +57,13 @@ def get_influencers():
 @jwt_required()
 def get_influencer(influencer_id):
     """Get detailed information about a specific influencer."""
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(influencer_id)
     
     if not influencer:
         return jsonify({"error": "Influencer not found"}), 404
     
     # Get latest metrics
-    latest_metrics = influencer.metrics.order_by(InfluencerMetric.date.desc()).first()
+    latest_metrics = influencer.metrics.order_by(SocialPageMetric.date.desc()).first()
     
     # Format categories
     categories = [{"id": c.id, "name": c.name} for c in influencer.categories]

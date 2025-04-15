@@ -59,7 +59,7 @@ def connect_social_media():
     db.session.commit()
     
     # Also create or update an influencer record
-    from app.models.influencer import Influencer, Category
+    from app.models.social_page import Influencer, Category
     
     # Clean username (remove @ if present)
     clean_username = username.replace('@', '')

@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 
-from app.models import Influencer
+from app.models import SocialPage
 from app.services import task_queue_service
 from app.services.social_media_service import SocialMediaService
 from app.services.engagement_service import EngagementService
@@ -18,18 +18,18 @@ bp = Blueprint('tasks', __name__)
 logger = logging.getLogger(__name__)
 
 # Helper functions for background tasks
-def sync_influencer_data(influencer_id, user_id=None):
+def sync_influencer_data(social_page_id, user_id=None):
     """
     Synchronize an influencer's data from social media platforms.
     
     Args:
-        influencer_id: The ID of the influencer to sync
+        social_page_id: The ID of the influencer to sync
         user_id: Optional user ID to use for API auth
         
     Returns:
         dict: Result of the sync operation
     """
-    logger.info(f"Starting sync for influencer {influencer_id}")
+    logger.info(f"Starting sync for influencer {social_page_id}")
     
     try:
         # Create minimal Flask app just for database context - no blueprints or routes
@@ -46,11 +46,11 @@ def sync_influencer_data(influencer_id, user_id=None):
         # Use app context for database operations
         with minimal_app.app_context():
             # Get the influencer
-            from app.models import Influencer
-            influencer = Influencer.query.get(influencer_id)
+            from app.models import SocialPage
+            influencer = SocialPage.query.get(social_page_id)
             if not influencer:
-                logger.error(f"Influencer {influencer_id} not found")
-                return {"status": "error", "message": f"Influencer {influencer_id} not found"}
+                logger.error(f"Influencer {social_page_id} not found")
+                return {"status": "error", "message": f"Influencer {social_page_id} not found"}
             
             platform = influencer.platform
             username = influencer.username
@@ -85,7 +85,7 @@ def sync_influencer_data(influencer_id, user_id=None):
             posts_count = 0
             if 'recent_media' in profile_data and profile_data['recent_media']:
                 posts_count = SocialMediaService.save_recent_posts(
-                    influencer_id,
+                    social_page_id,
                     profile_data['recent_media'],
                     platform
                 )
@@ -96,7 +96,7 @@ def sync_influencer_data(influencer_id, user_id=None):
             
             try:
                 from app.services.engagement_service import EngagementService
-                engagement_metrics = EngagementService.calculate_engagement_metrics(influencer_id)
+                engagement_metrics = EngagementService.calculate_engagement_metrics(social_page_id)
                 metrics_results['engagement'] = "success" if engagement_metrics else "failed"
             except Exception as e:
                 logger.error(f"Error calculating engagement metrics for {username}: {str(e)}")
@@ -104,7 +104,7 @@ def sync_influencer_data(influencer_id, user_id=None):
             
             try:
                 from app.services.reach_service import ReachService
-                reach_metrics = ReachService.calculate_reach_metrics(influencer_id, user_id)
+                reach_metrics = ReachService.calculate_reach_metrics(social_page_id, user_id)
                 metrics_results['reach'] = "success" if reach_metrics else "failed"
             except Exception as e:
                 logger.error(f"Error calculating reach metrics for {username}: {str(e)}")
@@ -112,7 +112,7 @@ def sync_influencer_data(influencer_id, user_id=None):
             
             try:
                 from app.services.growth_service import GrowthService
-                growth_metrics = GrowthService.calculate_growth_metrics(influencer_id)
+                growth_metrics = GrowthService.calculate_growth_metrics(social_page_id)
                 metrics_results['growth'] = "success" if growth_metrics else "failed"
             except Exception as e:
                 logger.error(f"Error calculating growth metrics for {username}: {str(e)}")
@@ -120,19 +120,19 @@ def sync_influencer_data(influencer_id, user_id=None):
             
             try:
                 from app.services.score_service import ScoreService
-                score = ScoreService.calculate_relevance_score(influencer_id)
+                score = ScoreService.calculate_relevance_score(social_page_id)
                 metrics_results['score'] = "success" if score else "failed"
             except Exception as e:
                 logger.error(f"Error calculating score metrics for {username}: {str(e)}")
                 metrics_results['score'] = "error"
             
             # Fetch the most up-to-date influencer data for the response
-            updated_influencer = Influencer.query.get(influencer_id)
+            updated_influencer = SocialPage.query.get(social_page_id)
             
             return {
                 "status": "success",
                 "influencer": {
-                    "id": influencer_id,
+                    "id": social_page_id,
                     "username": username,
                     "platform": platform,
                     "followers_count": updated_influencer.followers_count,
@@ -146,7 +146,7 @@ def sync_influencer_data(influencer_id, user_id=None):
             }
     
     except Exception as e:
-        logger.error(f"Error syncing influencer {influencer_id}: {str(e)}")
+        logger.error(f"Error syncing influencer {social_page_id}: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         return {"status": "error", "message": str(e)}
@@ -180,15 +180,15 @@ def sync_all_influencers(user_id=None, platform=None, limit=None):
         # Use app context for database operations
         with minimal_app.app_context():
             # Build query to get influencers
-            from app.models import Influencer
-            query = Influencer.query
+            from app.models import SocialPage
+            query = SocialPage.query
             
             # Filter by platform if specified
             if platform:
                 query = query.filter_by(platform=platform)
             
             # Order by last updated (oldest first)
-            query = query.order_by(Influencer.updated_at.asc())
+            query = query.order_by(SocialPage.updated_at.asc())
             
             # Apply limit if specified
             if limit and isinstance(limit, int) and limit > 0:
@@ -227,7 +227,7 @@ def sync_all_influencers(user_id=None, platform=None, limit=None):
                 
                 # Add result to details
                 result_entry = {
-                    "influencer_id": influencer["id"],
+                    "social_page_id": influencer["id"],
                     "username": influencer["username"],
                     "platform": influencer["platform"],
                     "status": sync_result.get('status')
@@ -246,7 +246,7 @@ def sync_all_influencers(user_id=None, platform=None, limit=None):
             except Exception as e:
                 logger.error(f"Error processing influencer {influencer['id']}: {str(e)}")
                 results["details"].append({
-                    "influencer_id": influencer["id"],
+                    "social_page_id": influencer["id"],
                     "username": influencer["username"],
                     "platform": influencer["platform"],
                     "status": "error",
@@ -284,7 +284,7 @@ def get_influencers_for_sync(limit=5):
     from flask import Flask
     from app.config import config
     from app.extensions import db
-    from app.models import Influencer
+    from app.models import SocialPage
     import os
     
     config_name = os.environ.get('FLASK_ENV', 'development')
@@ -294,8 +294,8 @@ def get_influencers_for_sync(limit=5):
     
     # Get influencers ordered by update time (oldest first)
     with minimal_app.app_context():
-        influencers = Influencer.query.order_by(Influencer.updated_at.asc()).limit(limit).all()
-        return [influencer.id for influencer in influencers]
+        influencers = SocialPage.query.order_by(Influencer.updated_at.asc()).limit(limit).all()
+        return [influencer.id for influencer in SocialPage]
 
 def process_login_data_sync(user_id):
     """
@@ -315,10 +315,10 @@ def process_login_data_sync(user_id):
         from flask import Flask
         from app.config import config
         from app.extensions import db
-        from app.models import Influencer
+        from app.models import SocialPage
         import os
         
-        influencer_ids = []
+        social_page_ids = []
         try:
             # Create minimal app for database access
             config_name = os.environ.get('FLASK_ENV', 'development')
@@ -328,13 +328,13 @@ def process_login_data_sync(user_id):
             
             # Query for influencers
             with minimal_app.app_context():
-                influencers = Influencer.query.order_by(Influencer.updated_at.asc()).limit(5).all()
-                influencer_ids = [influencer.id for influencer in influencers]
+                influencers = SocialPage.query.order_by(SocialPage.updated_at.asc()).limit(5).all()
+                social_page_ids = [influencer.id for influencer in influencers]
         except Exception as e:
             logger.error(f"Error querying influencers: {str(e)}")
-            influencer_ids = []
+            social_page_ids = []
         
-        if not influencer_ids:
+        if not social_page_ids:
             logger.info("No influencers found to update after login")
             return {
                 "status": "success",
@@ -342,22 +342,22 @@ def process_login_data_sync(user_id):
                 "updated": 0
             }
         
-        logger.info(f"Found {len(influencer_ids)} influencers to update after login")
+        logger.info(f"Found {len(social_page_ids)} influencers to update after login")
         
         updated_count = 0
-        for influencer_id in influencer_ids:
+        for social_page_id in social_page_ids:
             try:
                 # Update the influencer data
-                result = sync_influencer_data(influencer_id, user_id)
+                result = sync_influencer_data(social_page_id, user_id)
                 if result.get('status') == 'success':
                     updated_count += 1
             except Exception as e:
-                logger.error(f"Error updating influencer {influencer_id} after login: {str(e)}")
+                logger.error(f"Error updating influencer {social_page_id} after login: {str(e)}")
                 # Continue with other influencers even if this one fails
         
         return {
             "status": "success",
-            "message": f"Updated {updated_count} of {len(influencer_ids)} influencers after login",
+            "message": f"Updated {updated_count} of {len(social_page_ids)} influencers after login",
             "updated": updated_count
         }
     
@@ -371,9 +371,9 @@ def process_login_data_sync(user_id):
         }
 
 # API routes
-@bp.route('/async/sync-influencer/<int:influencer_id>', methods=['POST'])
+@bp.route('/async/sync-influencer/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def async_sync_influencer(influencer_id):
+def async_sync_influencer(social_page_id):
     """
     API endpoint to asynchronously synchronize data for a specific influencer.
     
@@ -381,20 +381,20 @@ def async_sync_influencer(influencer_id):
     can be used to check the status later.
     """
     user_id = get_jwt_identity()
-    logger.info(f"User {user_id} requested async sync for influencer {influencer_id}")
+    logger.info(f"User {user_id} requested async sync for influencer {social_page_id}")
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Start background task
     task_id = task_queue_service.enqueue_task(
         sync_influencer_data,
-        args=[influencer_id, user_id],
+        args=[social_page_id, user_id],
         description=f"Sync {influencer.platform} influencer: {influencer.username}"
     )
     

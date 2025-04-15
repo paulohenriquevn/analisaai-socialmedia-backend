@@ -6,8 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 from datetime import datetime, timedelta
 
-from app.models.influencer import Influencer
-from app.models.engagement import InfluencerEngagement
+from app.models import SocialPage,  SocialPageEngagement
 from app.services.engagement_service import EngagementService
 
 # Create blueprint
@@ -15,9 +14,9 @@ bp = Blueprint('engagement', __name__)
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/metrics/<int:influencer_id>', methods=['GET'])
+@bp.route('/metrics/<int:social_page_id>', methods=['GET'])
 @jwt_required()
-def get_engagement_metrics(influencer_id):
+def get_engagement_metrics(social_page_id):
     """
     Get engagement metrics for a specific influencer.
     
@@ -30,11 +29,11 @@ def get_engagement_metrics(influencer_id):
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -75,7 +74,7 @@ def get_engagement_metrics(influencer_id):
                 }), 400
     
     # Get metrics from database
-    metrics = EngagementService.get_engagement_metrics(influencer_id, start_date, end_date)
+    metrics = EngagementService.get_engagement_metrics(social_page_id, start_date, end_date)
     
     # Format response
     result = []
@@ -103,23 +102,23 @@ def get_engagement_metrics(influencer_id):
         "metrics": result
     })
 
-@bp.route('/calculate/<int:influencer_id>', methods=['POST'])
+@bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def calculate_engagement(influencer_id):
+def calculate_engagement(social_page_id):
     """Calculate and save engagement metrics for an influencer."""
     # Get current user
     current_user_id = get_jwt_identity()
     
     # Check if influencer exists
-    influencer = Influencer.query.get(influencer_id)
+    influencer = SocialPage.query.get(social_page_id)
     if not influencer:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {influencer_id} not found"
+            "message": f"Influencer with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
-    metrics = EngagementService.calculate_engagement_metrics(influencer_id)
+    metrics = EngagementService.calculate_engagement_metrics(social_page_id)
     
     if not metrics:
         return jsonify({
@@ -131,7 +130,7 @@ def calculate_engagement(influencer_id):
         "status": "success",
         "message": "Engagement metrics calculated successfully",
         "metrics": {
-            "influencer_id": influencer_id,
+            "social_page_id": social_page_id,
             "date": metrics['date'].isoformat() if isinstance(metrics['date'], datetime) else metrics['date'],
             "engagement_rate": metrics['engagement_rate'],
             "posts_count": metrics['posts_count'],

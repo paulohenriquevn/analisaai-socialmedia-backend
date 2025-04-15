@@ -8,7 +8,7 @@ import logging
 from collections import defaultdict
 from sqlalchemy import func, desc, extract, and_
 from app.extensions import db, cache
-from app.models import SocialPost, Influencer, User
+from app.models import SocialPagePost, SocialPage, User
 from app.models.social_media import SocialToken
 
 logger = logging.getLogger(__name__)
@@ -62,18 +62,18 @@ class PostingTimeService:
                 return {'error': 'No connected social media platforms found'}
             
             # Get posts to analyze
-            query = SocialPost.query.filter(
-                SocialPost.posted_at >= start_date,
-                SocialPost.posted_at <= end_date
+            query = SocialPagePost.query.filter(
+                SocialPagePost.posted_at >= start_date,
+                SocialPagePost.posted_at <= end_date
             )
             
             # Add platform filter if specified
             if platforms:
-                query = query.filter(SocialPost.platform.in_(platforms))
+                query = query.filter(SocialPagePost.platform.in_(platforms))
             
             # Add content type filter if specified
             if content_type:
-                query = query.filter(SocialPost.content_type == content_type)
+                query = query.filter(SocialPagePost.content_type == content_type)
             
             # Get all posts
             posts = query.all()
@@ -292,14 +292,14 @@ class PostingTimeService:
                 return {'error': 'No connected social media platforms found'}
             
             # Get posts to analyze
-            query = SocialPost.query.filter(
-                SocialPost.posted_at >= start_date,
-                SocialPost.posted_at <= end_date
+            query = SocialPagePost.query.filter(
+                SocialPagePost.posted_at >= start_date,
+                SocialPagePost.posted_at <= end_date
             )
             
             # Add platform filter if specified
             if platforms:
-                query = query.filter(SocialPost.platform.in_(platforms))
+                query = query.filter(SocialPagePost.platform.in_(platforms))
             
             # Get all posts
             posts = query.all()
@@ -450,14 +450,14 @@ class PostingTimeService:
                 return {'error': 'No connected social media platforms found'}
             
             # Get posts to analyze
-            query = SocialPost.query.filter(
-                SocialPost.posted_at >= start_date,
-                SocialPost.posted_at <= end_date
+            query = SocialPagePost.query.filter(
+                SocialPagePost.posted_at >= start_date,
+                SocialPagePost.posted_at <= end_date
             )
             
             # Add platform filter if specified
             if platforms:
-                query = query.filter(SocialPost.platform.in_(platforms))
+                query = query.filter(SocialPagePost.platform.in_(platforms))
             
             # Get all posts
             posts = query.all()
@@ -617,17 +617,17 @@ class PostingTimeService:
             start_date = end_date - timedelta(days=90)
             
             # Build query
-            query = SocialPost.query.join(Influencer).filter(
-                SocialPost.posted_at >= start_date,
-                SocialPost.posted_at <= end_date
+            query = SocialPagePost.query.join(SocialPage).filter(
+                SocialPagePost.posted_at >= start_date,
+                SocialPagePost.posted_at <= end_date
             )
             
             # Apply filters if provided
             if category:
-                query = query.join(Influencer.categories).filter_by(name=category)
+                query = query.join(SocialPage.categories).filter_by(name=category)
             
             if platform:
-                query = query.filter(SocialPost.platform == platform)
+                query = query.filter(SocialPagePost.platform == platform)
             
             # Get all posts
             posts = query.all()

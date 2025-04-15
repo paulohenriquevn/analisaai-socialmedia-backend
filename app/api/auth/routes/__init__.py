@@ -146,7 +146,7 @@ def login():
         # Import task queue service and tasks
         from app.services import task_queue_service
         from app.api.social_media.routes.tasks import sync_influencer_data
-        from app.models.influencer import Influencer
+        from app.models.social_page import Influencer
         
         logger.info(f"Starting asynchronous metrics update on login for user {user.id}")
         
@@ -205,7 +205,7 @@ def refresh_token():
         # Import task queue service and tasks
         from app.services import task_queue_service
         from app.api.social_media.routes.tasks import sync_influencer_data
-        from app.models.influencer import Influencer
+        from app.models.social_page import Influencer
         
         logger.info(f"Starting metrics update in background during token refresh for user {user_id}")
         

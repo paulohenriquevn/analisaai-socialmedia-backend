@@ -16,7 +16,7 @@ from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
 from app.extensions import db, cache
-from app.models import PostComment, SocialPost
+from app.models import SocialPagePostComment, SocialPagePost
 
 logger = logging.getLogger(__name__)
 
@@ -536,7 +536,7 @@ class SentimentService:
             
             for comment_data in comments_data:
                 # Check if comment already exists
-                existing = PostComment.query.filter_by(
+                existing = SocialPagePostComment.query.filter_by(
                     platform=comment_data['platform'],
                     comment_id=comment_data['comment_id']
                 ).first()
@@ -550,7 +550,7 @@ class SentimentService:
                     existing.updated_at = datetime.utcnow()
                 else:
                     # Create new comment
-                    comment = PostComment(
+                    comment = SocialPagePostComment(
                         post_id=post.id,
                         platform=comment_data['platform'],
                         comment_id=comment_data['comment_id'],
@@ -569,7 +569,7 @@ class SentimentService:
                     count += 1
             
             # Update post comments count
-            post.comments_count = PostComment.query.filter_by(post_id=post.id).count()
+            post.comments_count = SocialPagePostComment.query.filter_by(post_id=post.id).count()
             post.updated_at = datetime.utcnow()
             
             db.session.commit()
@@ -593,7 +593,7 @@ class SentimentService:
             dict: Sentiment analysis data
         """
         try:
-            post = SocialPost.query.get(post_id)
+            post = SocialPagePost.query.get(post_id)
             if not post:
                 return {
                     'error': 'Post not found',
@@ -601,7 +601,7 @@ class SentimentService:
                 }
             
             # Get comments for the post
-            comments = PostComment.query.filter_by(post_id=post.id).all()
+            comments = SocialPagePostComment.query.filter_by(post_id=post.id).all()
             
             if not comments:
                 return {
@@ -721,9 +721,9 @@ class SentimentService:
             start_date = end_date - timedelta(days=time_range)
             
             # Get all posts for the influencer
-            posts = SocialPost.query.filter(
-                SocialPost.influencer_id == influencer_id,
-                SocialPost.posted_at >= start_date
+            posts = SocialPagePost.query.filter(
+                SocialPagePost.influencer_id == influencer_id,
+                SocialPagePost.posted_at >= start_date
             ).all()
             
             if not posts:
@@ -744,8 +744,8 @@ class SentimentService:
             
             # Get all comments for the posts
             post_ids = [p.id for p in posts]
-            comments = PostComment.query.filter(
-                PostComment.post_id.in_(post_ids)
+            comments = SocialPagePostComment.query.filter(
+                SocialPagePostComment.post_id.in_(post_ids)
             ).all()
             
             if not comments:
