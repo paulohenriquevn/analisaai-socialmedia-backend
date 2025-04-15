@@ -211,34 +211,34 @@ def login():
           schema:
             type: object
             properties:
-              username:
+              email:
                 type: string
               password:
                 type: string
             required:
-              - username
+              - email
               - password
     responses:
       200:
         description: Login successful
       400:
-        description: Missing username or password
+        description: Missing email or password
       401:
-        description: Invalid username or password
+        description: Invalid email or password
     """
     """Log in a user."""
     data = request.json
     
     # Validate required fields
-    if not all(k in data for k in ('username', 'password')):
-        return jsonify({"error": "Missing username or password"}), 400
+    if not all(k in data for k in ('email', 'password')):
+        return jsonify({"error": "Missing email or password"}), 400
     
     # Find user
-    user = User.query.filter_by(username=data['username']).first()
+    user = User.query.filter_by(email=data['email']).first()
     
     # Verify password
     if not user or not user.check_password(data['password']):
-        return jsonify({"error": "Invalid username or password"}), 401
+        return jsonify({"error": "Invalid email or password"}), 401
     
     # Check if user is active
     if not user.is_active:
