@@ -15,7 +15,75 @@ bp = Blueprint('social_page', __name__)
 @bp.route('', methods=['GET'])
 @jwt_required()
 def get_social_page():
-    """Get all social_page with pagination."""
+    """
+    List paginated social pages for the authenticated user.
+    ---
+    tags:
+      - SocialPage
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: "Current page number"
+        required: false
+      - in: query
+        name: per_page
+        schema:
+          type: integer
+        description: "Items per page"
+        required: false
+      - in: query
+        name: platform
+        schema:
+          type: string
+        description: "Filter by platform"
+        required: false
+    responses:
+      200:
+        description: "Paginated list of social pages"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                social_page:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      full_name:
+                        type: string
+                      platform:
+                        type: string
+                      followers_count:
+                        type: integer
+                      engagement_rate:
+                        type: number
+                      social_score:
+                        type: number
+                      profile_image:
+                        type: string
+                pagination:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    per_page:
+                      type: integer
+                    total:
+                      type: integer
+                    pages:
+                      type: integer
+      401:
+        description: "Not authenticated"
+    """
     # Parse query parameters
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -56,7 +124,88 @@ def get_social_page():
 @bp.route('/<int:social_page_id>', methods=['GET'])
 @jwt_required()
 def get_social_page_by_id(social_page_id):
-    """Get detailed information about a specific social_page."""
+    """
+    Get details of a specific social page.
+    ---
+    tags:
+      - SocialPage
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: social_page_id
+        schema:
+          type: integer
+        required: true
+        description: "ID of the social page"
+    responses:
+      200:
+        description: "Details of the social page"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                social_page:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    username:
+                      type: string
+                    full_name:
+                      type: string
+                    platform:
+                      type: string
+                    profile_url:
+                      type: string
+                    profile_image:
+                      type: string
+                    bio:
+                      type: string
+                    followers_count:
+                      type: integer
+                    following_count:
+                      type: integer
+                    posts_count:
+                      type: integer
+                    engagement_rate:
+                      type: number
+                    social_score:
+                      type: number
+                    categories:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                    latest_metrics:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                        followers:
+                          type: integer
+                        engagement:
+                          type: number
+                        posts:
+                          type: integer
+                        likes:
+                          type: integer
+                        comments:
+                          type: integer
+                        shares:
+                          type: integer
+                        views:
+                          type: integer
+      404:
+        description: "Social page not found"
+      401:
+        description: "Not authenticated"
+    """
     social_page = SocialPage.query.get(social_page_id)
     
     if not social_page:
@@ -100,7 +249,74 @@ def get_social_page_by_id(social_page_id):
 @bp.route('/lookup', methods=['POST'])
 @jwt_required()
 def lookup_social_page():
-    """Look up an social_page by username and platform, fetch latest data."""
+    """
+    Lookup and update a social page by username and platform.
+    ---
+    tags:
+      - SocialPage
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              platform:
+                type: string
+            required:
+              - username
+              - platform
+    responses:
+      200:
+        description: "Updated social page data"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                social_page:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    username:
+                      type: string
+                    full_name:
+                      type: string
+                    platform:
+                      type: string
+                    profile_url:
+                      type: string
+                    profile_image:
+                      type: string
+                    bio:
+                      type: string
+                    followers_count:
+                      type: integer
+                    engagement_rate:
+                      type: number
+                    social_score:
+                      type: number
+                    categories:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+      400:
+        description: "Missing required fields"
+      404:
+        description: "Social token not found"
+      401:
+        description: "Not authenticated"
+    """
     user_id = int(get_jwt_identity())
     data = request.json
     

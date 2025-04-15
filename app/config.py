@@ -11,6 +11,11 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-jwt-key')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    RATELIMIT_DEFAULT = "100 per minute"
+    RATELIMIT_LOGIN = "5 per minute"
+    RATELIMIT_REGISTER = "3 per minute"
+    RATELIMIT_SOCIAL = "10 per minute"
     
     # Social Media OAuth
     INSTAGRAM_CLIENT_ID = os.getenv('INSTAGRAM_CLIENT_ID', '')

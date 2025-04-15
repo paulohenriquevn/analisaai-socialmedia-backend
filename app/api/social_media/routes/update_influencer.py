@@ -17,7 +17,79 @@ logger = logging.getLogger(__name__)
 @bp.route('/social_page/<int:social_page_id>', methods=['PUT'])
 @jwt_required()
 def update_social_page(social_page_id):
-    """Update details for an social_page."""
+    """
+    Update details for a social page.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: social_page_id
+        schema:
+          type: integer
+        required: true
+        description: "ID of the social page to update"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              full_name:
+                type: string
+                description: "Full name of the social page"
+              bio:
+                type: string
+                description: "Biography or description"
+              profile_image:
+                type: string
+                description: "Profile image URL"
+              followers_count:
+                type: integer
+                description: "Number of followers"
+              following_count:
+                type: integer
+                description: "Number of following"
+              posts_count:
+                type: integer
+                description: 'Number of posts'
+              engagement_rate:
+                type: number
+                description: 'Engagement rate'
+              categories:
+                type: array
+                items:
+                  type: string
+                description: 'List of category names'
+              likes:
+                type: integer
+                description: 'Likes count (optional)'
+              comments:
+                type: integer
+                description: 'Comments count (optional)'
+              shares:
+                type: integer
+                description: 'Shares count (optional)'
+              views:
+                type: integer
+                description: 'Views count (optional)'
+    responses:
+      200:
+        description: 'Social page updated successfully'
+        content:
+          application/json:
+            schema:
+              type: object
+      400:
+        description: 'No data provided or invalid data'
+      404:
+        description: 'Social page not found'
+      401:
+        description: 'Not authenticated'
+    """
     user_id = get_jwt_identity()
     
     # Find the social_page
@@ -279,13 +351,32 @@ def update_social_page(social_page_id):
 @jwt_required()
 def refresh_social_page_data(social_page_id):
     """
-    Refresh social_page data and fetch recent posts.
-    
-    This endpoint will:
-    1. Fetch the latest social_page profile data from social media
-    2. Save that data to our database
-    3. Fetch and save recent posts
-    4. Return the updated social_page data
+    Refresh social page data and fetch recent posts.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: social_page_id
+        schema:
+          type: integer
+        required: true
+        description: "ID of the social page to refresh"
+    responses:
+      200:
+        description: "Social page data refreshed successfully"
+        content:
+          application/json:
+            schema:
+              type: object
+      404:
+        description: "Social page not found"
+      400:
+        description: "Failed to fetch or save data"
+      401:
+        description: "Not authenticated"
     """
     user_id = get_jwt_identity()
     logger.info(f"User {user_id} requested refresh of social_page {social_page_id}")
@@ -370,7 +461,32 @@ def refresh_social_page_data(social_page_id):
 @jwt_required()
 def fetch_posts(social_page_id):
     """
-    Fetch and save recent posts for an social_page.
+    Fetch and save recent posts for a social page.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: social_page_id
+        schema:
+          type: integer
+        required: true
+        description: "ID of the social page to fetch posts for"
+    responses:
+      200:
+        description: "Recent posts fetched and saved successfully"
+        content:
+          application/json:
+            schema:
+              type: object
+      404:
+        description: "Social page not found"
+      400:
+        description: "Failed to fetch or save posts"
+      401:
+        description: "Not authenticated"
     """
     user_id = get_jwt_identity()
     logger.info(f"User {user_id} requested post fetch for social_page {social_page_id}")
@@ -422,10 +538,36 @@ def fetch_posts(social_page_id):
 @jwt_required()
 def fetch_posts_for_all():
     """
-    Fetch and save recent posts for all social_pages or a filtered subset.
-    
-    This endpoint allows batch fetching posts for multiple social_pages.
-    You can filter by platform and limit the number of social_pages processed.
+    Fetch and save recent posts for all social pages or a filtered subset.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              platform:
+                type: string
+                description: "Filter by platform (optional)"
+              limit:
+                type: integer
+                description: "Maximum number of social pages to process (optional)"
+    responses:
+      200:
+        description: "Batch posts fetched and saved successfully"
+        content:
+          application/json:
+            schema:
+              type: object
+      400:
+        description: "Failed to fetch or save posts"
+      401:
+        description: "Not authenticated"
     """
     user_id = get_jwt_identity()
     logger.info(f"User {user_id} requested batch post fetch for social_pages")

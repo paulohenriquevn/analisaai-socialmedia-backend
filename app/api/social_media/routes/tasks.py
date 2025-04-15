@@ -375,10 +375,45 @@ def process_login_data_sync(user_id):
 @jwt_required()
 def async_sync_social_page(social_page_id):
     """
-    API endpoint to asynchronously synchronize data for a specific social_page.
-    
-    This creates a background task and returns immediately with a task ID that
-    can be used to check the status later.
+    Asynchronously synchronize data for a specific social page.
+    ---
+    tags:
+      - Tasks
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: social_page_id
+        schema:
+          type: integer
+        required: true
+        description: "ID of the social page to sync"
+    responses:
+      202:
+        description: "Sync task created and running in background"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                message:
+                  type: string
+                task_id:
+                  type: string
+                social_page_id:
+                  type: integer
+                username:
+                  type: string
+                platform:
+                  type: string
+      404:
+        description: "Social page not found"
+      401:
+        description: "Not authenticated"
+      500:
+        description: "Internal server error"
     """
     user_id = get_jwt_identity()
     logger.info(f"User {user_id} requested async sync for social_page {social_page_id}")
@@ -413,10 +448,50 @@ def async_sync_social_page(social_page_id):
 @jwt_required()
 def async_sync_all():
     """
-    API endpoint to asynchronously synchronize data for all social_page or a filtered subset.
-    
-    This creates a background task and returns immediately with a task ID that
-    can be used to check the status later.
+    Asynchronously synchronize data for all social pages or a filtered subset.
+    ---
+    tags:
+      - Tasks
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              platform:
+                type: string
+                description: "Filter by platform (optional)"
+              limit:
+                type: integer
+                description: "Maximum number of social pages to sync (optional)"
+    responses:
+      202:
+        description: "Sync task created and running in background"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                message:
+                  type: string
+                task_id:
+                  type: string
+                filters:
+                  type: object
+                  properties:
+                    platform:
+                      type: string
+                    limit:
+                      type: integer
+      401:
+        description: "Not authenticated"
+      500:
+        description: "Internal server error"
     """
     user_id = get_jwt_identity()
     logger.info(f"User {user_id} requested async sync for all social_page")
@@ -448,6 +523,29 @@ def async_sync_all():
 def get_task(task_id):
     """
     Get the status of a background task.
+    ---
+    tags:
+      - Tasks
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+        description: "Task ID"
+    responses:
+      200:
+        description: "Task status information"
+        content:
+          application/json:
+            schema:
+              type: object
+      401:
+        description: "Not authenticated"
+      404:
+        description: "Task not found"
     """
     task_status = task_queue_service.get_task_status(task_id)
     
@@ -457,7 +555,35 @@ def get_task(task_id):
 @jwt_required()
 def get_tasks():
     """
-    Get information about all tasks.
+    Get information about all background tasks.
+    ---
+    tags:
+      - Tasks
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        required: false
+        description: "Maximum number of tasks to return"
+    responses:
+      200:
+        description: "List of tasks and queue info"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                queue_info:
+                  type: object
+                tasks:
+                  type: array
+                  items:
+                    type: object
+      401:
+        description: "Not authenticated"
     """
     # Get information about the queue
     queue_info = task_queue_service.get_queue_info()
@@ -486,6 +612,20 @@ def get_tasks():
 def get_queue_info():
     """
     Get information about the task queue.
+    ---
+    tags:
+      - Tasks
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: "Task queue information"
+        content:
+          application/json:
+            schema:
+              type: object
+      401:
+        description: "Not authenticated"
     """
     queue_info = task_queue_service.get_queue_info()
     
@@ -496,6 +636,37 @@ def get_queue_info():
 def cleanup_tasks():
     """
     Clean up old completed tasks.
+    ---
+    tags:
+      - Tasks
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              max_age_hours:
+                type: integer
+                description: "Maximum age of tasks to keep, in hours (default: 24)"
+    responses:
+      200:
+        description: "Number of tasks removed"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                message:
+                  type: string
+                removed_count:
+                  type: integer
+      401:
+        description: "Not authenticated"
     """
     data = request.json or {}
     max_age_hours = data.get('max_age_hours', 24)
@@ -513,7 +684,25 @@ def cleanup_tasks():
 def test_task_queue():
     """
     Test endpoint to verify the task queue is working.
-    This endpoint doesn't require authentication for easy testing.
+    ---
+    tags:
+      - Tasks
+    responses:
+      200:
+        description: "Test task enqueued successfully"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                message:
+                  type: string
+                task_id:
+                  type: string
+                queue_info:
+                  type: object
     """
     # Define a simple test task function
     def test_task(name):

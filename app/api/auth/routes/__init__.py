@@ -3,8 +3,9 @@ Authentication routes.
 """
 from flask import Blueprint, jsonify, request, session, redirect, url_for, current_app
 from flask_jwt_extended import (
-    jwt_required, create_access_token, create_refresh_token, get_jwt_identity
+    jwt_required, create_access_token, create_refresh_token, get_jwt_identity, get_jwt
 )
+from app.utils.jwt_blacklist import add_token_to_blacklist
 import os
 import uuid
 import json
@@ -19,11 +20,49 @@ logger = logging.getLogger(__name__)
 
 # Create blueprint
 bp = Blueprint('auth', __name__)
+from flask import current_app
+limiter = None
+
+def get_limiter():
+    global limiter
+    if limiter is None:
+        limiter = current_app.limiter
+    return limiter
+
+# Endpoint para logout (revogação do JWT)
+@bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """
+    User logout (JWT revocation)
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Logout successful. Token revoked.
+      401:
+        description: Invalid or expired token
+    """
+    jti = get_jwt()["jti"]
+    add_token_to_blacklist(jti)
+    return jsonify({"msg": "Logout successful. Token revoked."}), 200
 
 # Debug route for OAuth clients
 @bp.route('/debug/oauth-clients')
+@get_limiter().limit("10 per minute")
 def debug_oauth_clients():
-    """Debug endpoint to check registered OAuth clients."""
+    """
+    Listar clientes OAuth registrados/configuração
+    ---
+    tags:
+      - Auth
+    responses:
+      200:
+        description: Lista de clientes OAuth e configuração
+    """
     clients = list(oauth._registry.keys())
     import os
     
@@ -43,7 +82,15 @@ def debug_oauth_clients():
 
 @bp.route('/auth-status')
 def auth_status():
-    """Check authentication status and configuration."""
+    """
+    Verificar status de autenticação/configuração da API
+    ---
+    tags:
+      - Auth
+    responses:
+      200:
+        description: Status, clientes OAuth e configuração
+    """
     # Check if OAuth clients are registered
     clients = list(oauth._registry.keys())
     
@@ -73,7 +120,38 @@ def auth_status():
 
 # Basic authentication routes
 @bp.route('/register', methods=['POST'])
+@get_limiter().limit("3 per minute")
 def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - Auth
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              email:
+                type: string
+              password:
+                type: string
+            required:
+              - username
+              - email
+              - password
+    responses:
+      201:
+        description: User registered successfully
+      400:
+        description: Missing required fields
+      409:
+        description: Username or email already exists
+    """
     """Register a new user."""
     data = request.json
     
@@ -119,7 +197,35 @@ def register():
 
 
 @bp.route('/login', methods=['POST'])
+@get_limiter().limit("5 per minute")
 def login():
+    """
+    User login
+    ---
+    tags:
+      - Auth
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+            required:
+              - username
+              - password
+    responses:
+      200:
+        description: Login successful
+      400:
+        description: Missing username or password
+      401:
+        description: Invalid username or password
+    """
     """Log in a user."""
     data = request.json
     
@@ -187,7 +293,19 @@ def login():
 @bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh_token():
-    """Refresh JWT token."""
+    """
+    Refresh JWT token
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Novo access token gerado
+      401:
+        description: Token inválido
+    """
     user_id = int(get_jwt_identity())
     
     # Find user
@@ -235,7 +353,19 @@ def refresh_token():
 @bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
-    """Get current user profile."""
+    """
+    Obter perfil do usuário autenticado
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Perfil do usuário
+      404:
+        description: Usuário não encontrado
+    """
     user_id = int(get_jwt_identity())
     
     # Find user
@@ -266,7 +396,17 @@ def get_profile():
 # Facebook authentication routes
 @bp.route('/facebook')
 def facebook_auth():
-    """Initiate Facebook OAuth flow."""
+    """
+    Iniciar fluxo OAuth do Facebook
+    ---
+    tags:
+      - OAuth
+    responses:
+      302:
+        description: Redireciona para autenticação do Facebook
+      500:
+        description: Erro ao iniciar OAuth
+    """
     # Store state and action in session
     session.clear()  # Clear any previous session data to avoid conflicts
     session['oauth_state'] = str(uuid.uuid4())
@@ -315,7 +455,15 @@ def facebook_auth():
 
 @bp.route('/facebook/callback')
 def facebook_callback():
-    """Handle Facebook OAuth callback."""
+    """
+    Callback do Facebook OAuth
+    ---
+    tags:
+      - OAuth
+    responses:
+      302:
+        description: Redireciona para o frontend (sucesso ou erro)
+    """
     try:
         # Check for error parameter from Facebook
         if 'error' in request.args:
@@ -554,7 +702,19 @@ def facebook_callback():
 @bp.route('/instagram')
 @jwt_required()
 def instagram_auth():
-    """Initiate Instagram OAuth flow."""
+    """
+    Iniciar fluxo OAuth do Instagram
+    ---
+    tags:
+      - OAuth
+    security:
+      - BearerAuth: []
+    responses:
+      302:
+        description: Redireciona para autenticação do Instagram
+      500:
+        description: Erro ao iniciar OAuth
+    """
     user_id = int(get_jwt_identity())
     logger.info(f"Starting Instagram OAuth flow for user {user_id}")
     
@@ -592,7 +752,15 @@ def instagram_auth():
 
 @bp.route('/instagram/callback')
 def instagram_callback():
-    """Handle Instagram OAuth callback."""
+    """
+    Callback do Instagram OAuth
+    ---
+    tags:
+      - OAuth
+    responses:
+      302:
+        description: Redireciona para o frontend (sucesso ou erro)
+    """
     try:
         # Check for error parameter from Facebook
         if 'error' in request.args:
@@ -669,7 +837,33 @@ def instagram_callback():
 # Complete profile after social login
 @bp.route('/complete-profile', methods=['POST'])
 def complete_profile():
-    """Complete user registration when required fields are missing from social login."""
+    """
+    Completar cadastro do usuário via social login (quando faltam campos obrigatórios)
+    ---
+    tags:
+      - Auth
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              facebook_id:
+                type: string
+              email:
+                type: string
+            required:
+              - facebook_id
+              - email
+    responses:
+      201:
+        description: Cadastro completado com sucesso
+      400:
+        description: Campos obrigatórios ausentes
+      500:
+        description: Erro ao completar cadastro
+    """
     try:
         data = request.json
         logger.info(f"Completing profile with data: {json.dumps(data)}")
@@ -788,7 +982,19 @@ def complete_profile():
 @bp.route('/tiktok')
 @jwt_required()
 def tiktok_auth():
-    """Initiate TikTok OAuth flow."""
+    """
+    Iniciar fluxo OAuth do TikTok
+    ---
+    tags:
+      - OAuth
+    security:
+      - BearerAuth: []
+    responses:
+      302:
+        description: Redireciona para autenticação do TikTok
+      500:
+        description: Erro ao iniciar OAuth
+    """
     user_id = int(get_jwt_identity())
     
     # Check if TikTok client is registered
@@ -810,7 +1016,15 @@ def tiktok_auth():
 
 @bp.route('/tiktok/callback')
 def tiktok_callback():
-    """Handle TikTok OAuth callback."""
+    """
+    Callback do TikTok OAuth
+    ---
+    tags:
+      - OAuth
+    responses:
+      302:
+        description: Redireciona para o frontend (sucesso ou erro)
+    """
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({"error": "Invalid session"}), 401

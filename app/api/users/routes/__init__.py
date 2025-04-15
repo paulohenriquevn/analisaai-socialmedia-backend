@@ -17,7 +17,40 @@ logger = logging.getLogger(__name__)
 @bp.route('/me/connected-accounts', methods=['GET'])
 @jwt_required()
 def get_connected_accounts():
-    """Get all connected social media accounts for the current user."""
+    """
+    Lista todas as contas de redes sociais conectadas do usuário autenticado.
+    ---
+    tags:
+      - Usuário
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Lista de contas conectadas
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connected_accounts:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      platform:
+                        type: string
+                        example: instagram
+                      connected_at:
+                        type: string
+                        format: date-time
+                      expires_at:
+                        type: string
+                        format: date-time
+                      is_expired:
+                        type: boolean
+      401:
+        description: Não autenticado
+    """
     user_id = int(get_jwt_identity())
     
     # Query all tokens for this user
@@ -41,7 +74,54 @@ def get_connected_accounts():
 @bp.route('/me/instagram-accounts', methods=['GET'])
 @jwt_required()
 def get_instagram_accounts():
-    """Get connected Instagram business accounts for the current user."""
+    """
+    Lista as contas Instagram Business conectadas do usuário autenticado.
+    ---
+    tags:
+      - Usuário
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Contas Instagram conectadas
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accounts:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                        example: "meuuser"
+                      full_name:
+                        type: string
+                        example: "Meu Nome"
+                      profile_image:
+                        type: string
+                        example: "https://..."
+                      followers_count:
+                        type: integer
+                        example: 1234
+                      account_type:
+                        type: string
+                        example: business
+                      facebook_page_name:
+                        type: string
+                        example: "Minha Página"
+                      profile_url:
+                        type: string
+                        example: "https://instagram.com/meuuser"
+      400:
+        description: Falha ao buscar dados
+      404:
+        description: Nenhuma conta Instagram conectada
+      401:
+        description: Não autenticado
+    """
     user_id = int(get_jwt_identity())
     
     # Check if user has an Instagram token
@@ -101,7 +181,34 @@ def get_instagram_accounts():
 @bp.route('/me/instagram-profile', methods=['GET'])
 @jwt_required()
 def get_instagram_profile():
-    """Get detailed Instagram profile data including metrics."""
+    """
+    Retorna o perfil detalhado do Instagram do usuário autenticado, incluindo métricas.
+    ---
+    tags:
+      - Usuário
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: username
+        in: query
+        description: Username alternativo para buscar perfil (opcional)
+        required: false
+        schema:
+          type: string
+    responses:
+      200:
+        description: Dados detalhados do perfil Instagram
+        content:
+          application/json:
+            schema:
+              type: object
+      400:
+        description: Falha ao buscar dados
+      404:
+        description: Nenhuma conta Instagram conectada
+      401:
+        description: Não autenticado
+    """
     user_id = int(get_jwt_identity())
     
     # Optional username parameter
@@ -144,7 +251,40 @@ def get_instagram_profile():
 @bp.route('/me/connected-accounts/<platform>', methods=['DELETE'])
 @jwt_required()
 def disconnect_account(platform):
-    """Disconnect a social media account."""
+    """
+    Desconecta uma conta de rede social do usuário autenticado.
+    ---
+    tags:
+      - Usuário
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: platform
+        in: path
+        description: Plataforma a ser desconectada (instagram, facebook, tiktok)
+        required: true
+        schema:
+          type: string
+          enum: [instagram, facebook, tiktok]
+    responses:
+      200:
+        description: Conta desconectada com sucesso
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      400:
+        description: Plataforma inválida
+      404:
+        description: Conta não conectada
+      401:
+        description: Não autenticado
+      500:
+        description: Erro interno ao desconectar
+    """
     user_id = int(get_jwt_identity())
     
     # Validate platform

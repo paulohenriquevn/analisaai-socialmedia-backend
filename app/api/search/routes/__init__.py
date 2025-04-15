@@ -12,7 +12,117 @@ bp = Blueprint('search', __name__)
 @bp.route('/social_pages', methods=['GET'])
 @jwt_required()
 def search_social_pages():
-    """Search for social_pages with various filters."""
+    """
+    Search for social_pages with various filters.
+    ---
+    tags:
+      - Search
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: q
+        in: query
+        description: "Free text search (username, full_name, bio)"
+        required: false
+        schema:
+          type: string
+      - name: platform
+        in: query
+        description: "Platform to filter (e.g. instagram, tiktok)"
+        required: false
+        schema:
+          type: string
+      - name: category
+        in: query
+        description: "Category to filter"
+        required: false
+        schema:
+          type: string
+      - name: min_followers
+        in: query
+        description: "Minimum number of followers"
+        required: false
+        schema:
+          type: integer
+      - name: max_followers
+        in: query
+        description: "Maximum number of followers"
+        required: false
+        schema:
+          type: integer
+      - name: min_engagement
+        in: query
+        description: "Minimum engagement rate"
+        required: false
+        schema:
+          type: number
+      - name: sort_by
+        in: query
+        description: "Sort by field (followers, engagement, score)"
+        required: false
+        schema:
+          type: string
+      - name: sort_order
+        in: query
+        description: "Sort order (asc or desc)"
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        description: "Page number"
+        required: false
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        description: "Results per page"
+        required: false
+        schema:
+          type: integer
+    responses:
+      200:
+        description: "List of social pages and pagination meta"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                social_pages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      full_name:
+                        type: string
+                      platform:
+                        type: string
+                      followers_count:
+                        type: integer
+                      engagement_rate:
+                        type: number
+                      social_score:
+                        type: number
+                      profile_image:
+                        type: string
+                meta:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    per_page:
+                      type: integer
+                    total:
+                      type: integer
+                    pages:
+                      type: integer
+      401:
+        description: "Not authenticated"
+    """
     # Parse query parameters
     query = request.args.get('q', '')
     platform = request.args.get('platform')
@@ -97,7 +207,35 @@ def search_social_pages():
 @bp.route('/categories', methods=['GET'])
 @jwt_required()
 def get_categories():
-    """Get all social_pages categories."""
+    """
+    Get all social_pages categories.
+    ---
+    tags:
+      - Search
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: "List of categories"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      description:
+                        type: string
+      401:
+        description: "Not authenticated"
+    """
     categories = SocialPageCategory.query.all()
     
     return jsonify({

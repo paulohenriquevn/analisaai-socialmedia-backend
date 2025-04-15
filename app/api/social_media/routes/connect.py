@@ -23,7 +23,50 @@ logger = logging.getLogger(__name__)
 @bp_connect.route('/connect', methods=['POST'])
 @jwt_required()
 def connect_social_media():
-    """Connect a social media account to the authenticated user."""
+    """
+    Connect a social media account to the authenticated user.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              platform:
+                type: string
+                description: "Platform to connect (instagram, facebook, tiktok)"
+              username:
+                type: string
+                description: "Username or handle on the platform"
+              external_id:
+                type: string
+                description: "External ID from the platform (optional)"
+            required:
+              - platform
+              - username
+    responses:
+      201:
+        description: "Social media account connected successfully"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialMediaConnectResponse'
+      400:
+        description: "Invalid request data or unsupported platform"
+      401:
+        description: "Not authenticated"
+      404:
+        description: "User not found"
+      409:
+        description: "Social media already connected"
+      500:
+        description: "Failed to save social_page data"
+    """
     # Get authenticated user
     user_id = get_jwt_identity()
     user = User.query.get(int(user_id))

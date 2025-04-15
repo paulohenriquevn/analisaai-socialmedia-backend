@@ -33,6 +33,41 @@ bp.register_blueprint(visualization_bp, url_prefix='/visualization')
 @bp.route('/social-page/<int:social_id>/growth', methods=['GET'])
 @jwt_required()
 def get_social_page_growth(social_id):
+    """
+    Retorna métricas de crescimento para uma social_page específica.
+    ---
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: social_id
+        in: path
+        description: "ID da social_page"
+        required: true
+        schema:
+          type: integer
+      - name: time_range
+        in: query
+        description: "Intervalo de dias para analise (padrao: 30)"
+        required: false
+        schema:
+          type: integer
+    responses:
+      200:
+        description: "Metricas de crescimento"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                growth:
+                  type: object
+      400:
+        description: "Nenhuma conta Instagram conectada"
+      401:
+        description: "Nao autenticado"
+    """
     time_range = request.args.get('time_range', 30, type=int)
     
     # Get growth metrics
@@ -49,7 +84,41 @@ def get_social_page_growth(social_id):
 @bp.route('/benchmarks', methods=['GET'])
 @jwt_required()
 def get_benchmarks():
-    """Get benchmark metrics for a platform and optional category."""
+    """
+    Retorna metricas de benchmark para uma plataforma e categoria (opcional).
+    ---
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: platform
+        in: query
+        description: "Dados detalhados do perfil Instagram"
+        required: false
+        schema:
+          type: string
+      - name: category
+        in: query
+        description: "Category (optional)"
+        required: false
+        schema:
+          type: string
+    responses:
+      200:
+        description: "Benchmark metrics"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                benchmarks:
+                  type: object
+      400:
+        description: "Failed to calculate benchmarks"
+      401:
+        description: "Not authenticated"
+    """
     # Parse parameters
     platform = request.args.get('platform', 'instagram')
     category = request.args.get('category')
@@ -68,7 +137,54 @@ def get_benchmarks():
 @bp.route('/recommendations', methods=['GET'])
 @jwt_required()
 def get_recommendations():
-    """Get SocialPage recommendations based on filters."""
+    """
+    Returns social page recommendations based on filters.
+    ---
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: platform
+        in: query
+        description: "Platform (optional)"
+        required: false
+        schema:
+          type: string
+      - name: category
+        in: query
+        description: "Category (optional)"
+        required: false
+        schema:
+          type: string
+      - name: min_followers
+        in: query
+        description: "Minimum number of followers (optional)"
+        required: false
+        schema:
+          type: integer
+      - name: min_engagement
+        in: query
+        description: "Minimum engagement (optional)"
+        required: false
+        schema:
+          type: number
+          format: float
+    responses:
+      200:
+        description: "List of recommendations"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recommendations:
+                  type: array
+                  items:
+                    type: object
+      401:
+        description: "Not authenticated"
+    """
     user_id = int(get_jwt_identity())
     
     # Parse filters from query parameters
@@ -93,7 +209,32 @@ def get_recommendations():
 @bp.route('/dashboard', methods=['GET'])
 @jwt_required()
 def get_dashboard():
-    """Get consolidated dashboard metrics for all platforms."""
+    """
+    Returns consolidated metrics for the dashboard for all platforms.
+    ---
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: timeframe
+        in: query
+        description: "Timeframe for analysis (e.g. month, week)"
+        required: false
+        schema:
+          type: string
+    responses:
+      200:
+        description: "Consolidated metrics for the dashboard"
+        content:
+          application/json:
+            schema:
+              type: object
+      400:
+        description: "Validation error"
+      401:
+        description: "Not authenticated"
+    """
     user_id = int(get_jwt_identity())
     
     try:
@@ -131,7 +272,32 @@ def get_dashboard():
 @bp.route('/dashboard/refresh', methods=['POST'])
 @jwt_required()
 def refresh_dashboard():
-    """Force refresh of dashboard metrics."""
+    """
+    Forces an update of the dashboard metrics.
+    ---
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: timeframe
+        in: query
+        description: "Periodo de analise (ex: month, week)"
+        required: false
+        schema:
+          type: string
+    responses:
+      200:
+        description: "Metricas do dashboard atualizadas"
+        content:
+          application/json:
+            schema:
+              type: object
+      400:
+        description: "Erro de validacao"
+      401:
+        description: "Nao autenticado"
+    """
     user_id = int(get_jwt_identity())
     
     try:

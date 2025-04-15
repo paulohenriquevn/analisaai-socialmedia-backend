@@ -68,10 +68,15 @@ def register_error_handlers(app):
 
 def register_jwt_handlers(jwt):
     """Register JWT-specific error handlers."""
+    from app.utils.jwt_blacklist import is_token_revoked
+
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload):
+        return is_token_revoked(jwt_payload)
     
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
-        logger.info(f"Expired token used with payload: {jwt_payload}")
+        logger.info(f"Expired token used. user_id={jwt_payload.get('sub', 'unknown')}")
         return jsonify({
             "error": "token_expired",
             "message": "The access token has expired. Please refresh your token."
@@ -79,7 +84,7 @@ def register_jwt_handlers(jwt):
 
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
-        logger.warning(f"Invalid token used: {error}")
+        logger.warning("Invalid token used.")
         return jsonify({
             "error": "invalid_token",
             "message": "The token is invalid or malformed."
@@ -103,7 +108,7 @@ def register_jwt_handlers(jwt):
         
     @jwt.needs_fresh_token_loader
     def needs_fresh_token_callback(jwt_header, jwt_payload):
-        logger.info(f"Non-fresh token used when fresh is required: {jwt_payload}")
+        logger.info(f"Non-fresh token used. user_id={jwt_payload.get('sub', 'unknown')}")
         return jsonify({
             "error": "fresh_token_required",
             "message": "Fresh login required for this action."
@@ -111,7 +116,7 @@ def register_jwt_handlers(jwt):
         
     @jwt.revoked_token_loader
     def revoked_token_callback(jwt_header, jwt_payload):
-        logger.info(f"Revoked token used: {jwt_payload}")
+        logger.info(f"Revoked token used. user_id={jwt_payload.get('sub', 'unknown')}")
         return jsonify({
             "error": "token_revoked",
             "message": "This token has been revoked."

@@ -18,6 +18,9 @@ cache = Cache()
 
 def init_extensions(app):
     """Initialize all extensions with the app."""
+    # Swagger/OpenAPI (Flasgger)
+    from flasgger import Swagger
+    Swagger(app)
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
@@ -25,8 +28,8 @@ def init_extensions(app):
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # Register JWT error handlers
-    # from app.utils.error_handlers import register_jwt_handlers
-    # register_jwt_handlers(jwt)
+    from app.utils.error_handlers import register_jwt_handlers
+    register_jwt_handlers(jwt)
     
     # Configure cache
     cache_config = {
@@ -36,9 +39,22 @@ def init_extensions(app):
     }
     app.config.from_mapping(cache_config)
     cache.init_app(app)
-    # from app.utils.error_handlers import register_jwt_handlers
-    # register_jwt_handlers(jwt)
-    
+
+    # Initialize Redis for JWT blacklist
+    from redis import Redis
+    app.redis = Redis.from_url(app.config.get('REDIS_URL', 'redis://localhost:6379/0'))
+
+    # Initialize Flask-Limiter for rate limiting
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    limiter = Limiter(
+        get_remote_address,
+        app=app,
+        storage_uri=app.config.get('REDIS_URL', 'redis://localhost:6379/0'),
+        default_limits=["100 per minute"]
+    )
+    app.limiter = limiter
+
     # Configure OAuth
     oauth.init_app(app)
     

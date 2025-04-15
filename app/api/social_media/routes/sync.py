@@ -22,7 +22,52 @@ logger = logging.getLogger(__name__)
 def sync_social_pages():
     """
     Manually trigger a sync of social_page data using Apify.
-    This endpoint allows refreshing data for all or selected social_pages.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              social_page_ids:
+                type: array
+                items:
+                  type: integer
+                description: "IDs of social pages to sync (optional)"
+              limit:
+                type: integer
+                description: "Maximum number of social pages to sync (default: 100)"
+    responses:
+      200:
+        description: "Sync results for social pages"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total:
+                  type: integer
+                success:
+                  type: integer
+                failed:
+                  type: integer
+                details:
+                  type: array
+                  items:
+                    type: object
+      404:
+        description: "No social_pages found to sync"
+      400:
+        description: "Failed to sync social_page"
+      401:
+        description: "Not authenticated"
+      500:
+        description: "Internal server error"
     """
     current_user_id = get_jwt_identity()
     
@@ -170,6 +215,33 @@ def sync_social_pages():
 def sync_single_social_page(social_page_id):
     """
     Sync a single social_page by ID.
+    ---
+    tags:
+      - SocialMedia
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: social_page_id
+        schema:
+          type: integer
+        required: true
+        description: "ID of the social page to sync"
+    responses:
+      200:
+        description: "Sync result for the social page"
+        content:
+          application/json:
+            schema:
+              type: object
+      404:
+        description: "Social page not found"
+      400:
+        description: "Failed to sync social_page"
+      401:
+        description: "Not authenticated"
+      500:
+        description: "Internal server error"
     """
     current_user_id = get_jwt_identity()
     
