@@ -19,8 +19,8 @@ Além disso, o backend deve ser capaz de considerar as características do públ
      - Consumo de APIs RESTful para buscar métricas em tempo real.  
      - Exemplo de chamada para dados de engajamento:  
        ```typescript  
-       const fetchEngagementData = async (influencerId: string) => {  
-         const response = await axios.get(`/api/engagement/${influencerId}`);  
+       const fetchEngagementData = async (socialpageId: string) => {  
+         const response = await axios.get(`/api/engagement/${socialpageId}`);  
          return response.data;  
        };  
        ```  

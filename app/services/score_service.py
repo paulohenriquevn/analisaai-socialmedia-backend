@@ -1,5 +1,5 @@
 """
-Service for calculating and processing relevance scores for influencers.
+Service for calculating and processing relevance scores for social_pages.
 """
 import logging
 from datetime import datetime, date, timedelta
@@ -21,21 +21,21 @@ class ScoreService:
     @staticmethod
     def calculate_relevance_score(social_page_id):
         """
-        Calculate relevance score for a specific influencer.
+        Calculate relevance score for a specific social_page.
         
         Args:
-            social_page_id: ID of the influencer to calculate score for
+            social_page_id: ID of the social_page to calculate score for
             
         Returns:
             dict: The calculated score metrics or None if error
         """
         try:
-            logger.info(f"Calculating relevance score for influencer ID: {social_page_id}")
+            logger.info(f"Calculating relevance score for social_page ID: {social_page_id}")
             
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Calculate component scores
@@ -96,19 +96,19 @@ class ScoreService:
             # Save the score metrics
             result = ScoreService.save_score_metrics(score_metrics)
             if result:
-                # Update the influencer's current relevance score
-                influencer.relevance_score = overall_score
+                # Update the social_page's current relevance score
+                social_page.relevance_score = overall_score
                 db.session.commit()
-                logger.info(f"Updated influencer {social_page_id} with new relevance score: {overall_score}")
+                logger.info(f"Updated social_page {social_page_id} with new relevance score: {overall_score}")
                 
-                logger.info(f"Successfully saved relevance score for influencer {social_page_id}")
+                logger.info(f"Successfully saved relevance score for social_page {social_page_id}")
                 return score_metrics
             else:
-                logger.error(f"Failed to save relevance score for influencer {social_page_id}")
+                logger.error(f"Failed to save relevance score for social_page {social_page_id}")
                 return None
             
         except Exception as e:
-            logger.error(f"Error calculating relevance score for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error calculating relevance score for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -116,7 +116,7 @@ class ScoreService:
     @staticmethod
     def calculate_engagement_score(social_page_id, current_date=None):
         """
-        Calculate engagement component score for an influencer.
+        Calculate engagement component score for an social_page.
         
         This score is based on engagement metrics like engagement rate,
         likes, comments, and interaction rates.
@@ -133,9 +133,9 @@ class ScoreService:
             # No engagement data, return a baseline score
             return 50.0
         
-        # Get influencer for followers count
-        influencer = SocialPage.query.get(social_page_id)
-        if not influencer:
+        # Get social_page for followers count
+        social_page = SocialPage.query.get(social_page_id)
+        if not social_page:
             return 50.0
         
         # Calculate engagement score based on multiple factors
@@ -145,7 +145,7 @@ class ScoreService:
         # - Instagram: ~1-3%
         # - TikTok: ~5-15%
         # - Facebook: ~0.5-1%
-        platform = influencer.platform
+        platform = social_page.platform
         engagement_rate = engagement.engagement_rate or 0
         
         if platform == 'instagram':
@@ -162,7 +162,7 @@ class ScoreService:
             normalized_engagement_rate = min(engagement_rate * 10, 100)
         
         # 2. Likes per post relative to followers (0-100)
-        followers = influencer.followers_count or 1
+        followers = social_page.followers_count or 1
         avg_likes = engagement.avg_likes_per_post or 0
         likes_to_followers_ratio = (avg_likes / followers) * 100
         
@@ -201,7 +201,7 @@ class ScoreService:
     @staticmethod
     def calculate_reach_score(social_page_id, current_date=None):
         """
-        Calculate reach component score for an influencer.
+        Calculate reach component score for an social_page.
         
         This score is based on reach metrics like impressions, profile views,
         and story views.
@@ -218,12 +218,12 @@ class ScoreService:
             # No reach data, return a baseline score
             return 50.0
         
-        # Get influencer for followers count
-        influencer = SocialPage.query.get(social_page_id)
-        if not influencer:
+        # Get social_page for followers count
+        social_page = SocialPage.query.get(social_page_id)
+        if not social_page:
             return 50.0
         
-        followers = influencer.followers_count or 1
+        followers = social_page.followers_count or 1
         
         # Calculate reach score based on multiple factors
         
@@ -271,7 +271,7 @@ class ScoreService:
     @staticmethod
     def calculate_growth_score(social_page_id, current_date=None):
         """
-        Calculate growth component score for an influencer.
+        Calculate growth component score for an social_page.
         
         This score is based on growth metrics like new followers,
         growth rates, and retention.
@@ -288,12 +288,12 @@ class ScoreService:
             # No growth data, return a baseline score
             return 50.0
         
-        # Get influencer for followers count
-        influencer = SocialPage.query.get(social_page_id)
-        if not influencer:
+        # Get social_page for followers count
+        social_page = SocialPage.query.get(social_page_id)
+        if not social_page:
             return 50.0
         
-        followers = influencer.followers_count or 1
+        followers = social_page.followers_count or 1
         
         # Calculate growth score based on multiple factors
         
@@ -354,7 +354,7 @@ class ScoreService:
     @staticmethod
     def calculate_consistency_score(social_page_id, current_date=None):
         """
-        Calculate consistency component score for an influencer.
+        Calculate consistency component score for an social_page.
         
         This score is based on posting frequency, consistency over time,
         and content regularity.
@@ -366,9 +366,9 @@ class ScoreService:
         # over time, which requires post timestamps data
         # As a simplification, we'll estimate based on available data
         
-        # Get the influencer
-        influencer = SocialPage.query.get(social_page_id)
-        if not influencer:
+        # Get the social_page
+        social_page = SocialPage.query.get(social_page_id)
+        if not social_page:
             return 50.0
         
         # Get engagement metrics as they have some post data
@@ -378,8 +378,8 @@ class ScoreService:
         
         if not engagements:
             # No engagement data, use a simple estimate based on post count
-            posts_count = influencer.posts_count or 0
-            account_age_days = max((current_date - influencer.created_at.date()).days, 1)
+            posts_count = social_page.posts_count or 0
+            account_age_days = max((current_date - social_page.created_at.date()).days, 1)
             
             # Average posts per day
             avg_posts_per_day = posts_count / account_age_days
@@ -406,8 +406,8 @@ class ScoreService:
                 posting_consistency = 0  # No new posts = no consistency
         else:
             # Not enough data points, use simple estimate
-            posts_count = influencer.posts_count or 0
-            account_age_days = max((current_date - influencer.created_at.date()).days, 1)
+            posts_count = social_page.posts_count or 0
+            account_age_days = max((current_date - social_page.created_at.date()).days, 1)
             avg_posts_per_day = posts_count / account_age_days
             posting_consistency = min(avg_posts_per_day * 100, 100)
         
@@ -416,7 +416,7 @@ class ScoreService:
     @staticmethod
     def calculate_audience_quality_score(social_page_id, current_date=None):
         """
-        Calculate audience quality component score for an influencer.
+        Calculate audience quality component score for an social_page.
         
         This score is based on indicators of audience authenticity,
         engagement quality, and demographic relevance.
@@ -428,9 +428,9 @@ class ScoreService:
         # authenticity indicators, and engagement quality metrics
         # As a simplification, we'll estimate based on engagement patterns
         
-        # Get the influencer
-        influencer = SocialPage.query.get(social_page_id)
-        if not influencer:
+        # Get the social_page
+        social_page = SocialPage.query.get(social_page_id)
+        if not social_page:
             return 50.0
         
         # Get latest engagement metrics
@@ -444,8 +444,8 @@ class ScoreService:
         
         # Calculate audience quality based on engagement patterns
         
-        followers = influencer.followers_count or 1
-        following = influencer.following_count or 0
+        followers = social_page.followers_count or 1
+        following = social_page.following_count or 0
         
         # 1. Comments to likes ratio (higher ratio = higher quality engagement)
         likes = engagement.total_likes or 1
@@ -505,10 +505,10 @@ class ScoreService:
             score_metrics: Dict containing score metrics
             
         Returns:
-            InfluencerScore: Saved score metrics record or None if error
+            social_pageScore: Saved score metrics record or None if error
         """
         try:
-            # Check if metrics for this influencer and date already exist
+            # Check if metrics for this social_page and date already exist
             existing = SocialPageScore.query.filter_by(
                 social_page_id=score_metrics['social_page_id'],
                 date=score_metrics['date']
@@ -537,10 +537,10 @@ class ScoreService:
     @staticmethod
     def get_score_metrics(social_page_id, start_date=None, end_date=None):
         """
-        Get score metrics for an influencer within a date range.
+        Get score metrics for an social_page within a date range.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             start_date: Start date for metrics (optional)
             end_date: End date for metrics (optional)
             
@@ -561,23 +561,23 @@ class ScoreService:
         return query.all()
     
     @staticmethod
-    def calculate_all_influencers_scores():
+    def calculate_all_social_pages_scores():
         """
-        Calculate relevance scores for all influencers.
+        Calculate relevance scores for all social_pages.
         
         Returns:
             dict: Summary of the calculation results
         """
-        influencers = SocialPage.query.all()
+        social_pages = SocialPage.query.all()
         results = {
-            'total': len(influencers),
+            'total': len(social_pages),
             'success': 0,
             'failed': 0
         }
         
-        for influencer in influencers:
+        for social_page in social_pages:
             try:
-                metrics = ScoreService.calculate_relevance_score(influencer.id)
+                metrics = ScoreService.calculate_relevance_score(social_page.id)
                 if metrics:
                     results['success'] += 1
                 else:

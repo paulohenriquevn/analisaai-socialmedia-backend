@@ -9,10 +9,10 @@ from app.models import SocialPage, SocialPageCategory
 # Create blueprint
 bp = Blueprint('search', __name__)
 
-@bp.route('/influencers', methods=['GET'])
+@bp.route('/social_pages', methods=['GET'])
 @jwt_required()
-def search_influencers():
-    """Search for influencers with various filters."""
+def search_social_pages():
+    """Search for social_pages with various filters."""
     # Parse query parameters
     query = request.args.get('q', '')
     platform = request.args.get('platform')
@@ -26,11 +26,11 @@ def search_influencers():
     per_page = request.args.get('per_page', 10, type=int)
     
     # Build query
-    influencer_query = SocialPage.query
+    social_page_query = SocialPage.query
     
     # Apply text search
     if query:
-        influencer_query = influencer_query.filter(
+        social_page_query = social_page_query.filter(
             (SocialPage.username.ilike(f'%{query}%')) |
             (SocialPage.full_name.ilike(f'%{query}%')) |
             (SocialPage.bio.ilike(f'%{query}%'))
@@ -38,19 +38,19 @@ def search_influencers():
     
     # Apply filters
     if platform:
-        influencer_query = influencer_query.filter_by(platform=platform)
+        social_page_query = social_page_query.filter_by(platform=platform)
     
     if category:
-        influencer_query = influencer_query.join(SocialPage.categories).filter(Category.name == category)
+        social_page_query = social_page_query.join(SocialPage.categories).filter(Category.name == category)
     
     if min_followers:
-        influencer_query = influencer_query.filter(SocialPage.followers_count >= min_followers)
+        social_page_query = social_page_query.filter(SocialPage.followers_count >= min_followers)
     
     if max_followers:
-        influencer_query = influencer_query.filter(SocialPage.followers_count <= max_followers)
+        social_page_query = social_page_query.filter(SocialPage.followers_count <= max_followers)
     
     if min_engagement:
-        influencer_query = influencer_query.filter(SocialPage.engagement_rate >= min_engagement)
+        social_page_query = social_page_query.filter(SocialPage.engagement_rate >= min_engagement)
     
     # Apply sorting
     if sort_by == 'followers':
@@ -63,16 +63,16 @@ def search_influencers():
         order_col = SocialPage.followers_count
     
     if sort_order == 'asc':
-        influencer_query = influencer_query.order_by(order_col.asc())
+        social_page_query = social_page_query.order_by(order_col.asc())
     else:
-        influencer_query = influencer_query.order_by(order_col.desc())
+        social_page_query = social_page_query.order_by(order_col.desc())
     
     # Paginate results
-    influencers = influencer_query.paginate(page=page, per_page=per_page, error_out=False)
+    social_pages = social_page_query.paginate(page=page, per_page=per_page, error_out=False)
     
     # Format response
     return jsonify({
-        "influencers": [
+        "social_pages": [
             {
                 "id": i.id,
                 "username": i.username,
@@ -83,13 +83,13 @@ def search_influencers():
                 "social_score": i.social_score,
                 "profile_image": i.profile_image
             }
-            for i in influencers.items
+            for i in social_pages.items
         ],
         "meta": {
-            "page": influencers.page,
-            "per_page": influencers.per_page,
-            "total": influencers.total,
-            "pages": influencers.pages
+            "page": social_pages.page,
+            "per_page": social_pages.per_page,
+            "total": social_pages.total,
+            "pages": social_pages.pages
         }
     })
 
@@ -97,7 +97,7 @@ def search_influencers():
 @bp.route('/categories', methods=['GET'])
 @jwt_required()
 def get_categories():
-    """Get all influencer categories."""
+    """Get all social_pages categories."""
     categories = SocialPageCategory.query.all()
     
     return jsonify({

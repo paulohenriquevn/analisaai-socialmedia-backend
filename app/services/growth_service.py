@@ -1,5 +1,5 @@
 """
-Service for calculating and processing growth metrics for influencers.
+Service for calculating and processing growth metrics for social_pages.
 """
 import logging
 from datetime import datetime, date, timedelta
@@ -14,26 +14,26 @@ class GrowthService:
     @staticmethod
     def calculate_growth_metrics(social_page_id):
         """
-        Calculate growth metrics for a specific influencer.
+        Calculate growth metrics for a specific social_page.
         
         Args:
-            social_page_id: ID of the influencer to calculate metrics for
+            social_page_id: ID of the social_page to calculate metrics for
             
         Returns:
             dict: The calculated growth metrics or None if error
         """
         try:
-            logger.info(f"Calculating growth metrics for influencer ID: {social_page_id}")
+            logger.info(f"Calculating growth metrics for social_page ID: {social_page_id}")
             
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Current and past metrics
             current_date = date.today()
-            current_followers = influencer.followers_count
+            current_followers = SocialPage.followers_count
             
             # Get historical metrics to calculate growth
             growth_metrics = GrowthService.get_historical_metrics(social_page_id, current_date)
@@ -117,14 +117,14 @@ class GrowthService:
             # Save the metrics
             result = GrowthService.save_growth_metrics(metrics)
             if result:
-                logger.info(f"Successfully saved growth metrics for influencer {social_page_id}")
+                logger.info(f"Successfully saved growth metrics for social_page {social_page_id}")
                 return metrics
             else:
-                logger.error(f"Failed to save growth metrics for influencer {social_page_id}")
+                logger.error(f"Failed to save growth metrics for social_page {social_page_id}")
                 return None
             
         except Exception as e:
-            logger.error(f"Error calculating growth metrics for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error calculating growth metrics for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -132,10 +132,10 @@ class GrowthService:
     @staticmethod
     def get_historical_metrics(social_page_id, end_date=None, days=30):
         """
-        Get historical growth metrics for an influencer.
+        Get historical growth metrics for an social_page.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             end_date: End date for data retrieval (defaults to today)
             days: Number of days of history to retrieve
             
@@ -162,7 +162,7 @@ class GrowthService:
         Calculate growth velocity (average daily follower growth) over a period.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             current_date: Current date (defaults to today)
             days: Number of days to analyze
             
@@ -185,15 +185,15 @@ class GrowthService:
             SocialPageGrowth.date == current_date
         ).first()
         
-        # If we don't have both metrics, try using the influencer's current count
+        # If we don't have both metrics, try using the social_page's current count
         # and the oldest available metric in the range
         if not start_metrics or not end_metrics:
-            # Get the influencer
-            influencer = Influencer.query.get(social_page_id)
-            if not influencer:
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
                 return 0.0
                 
-            end_followers = influencer.followers_count
+            end_followers = social_page.followers_count
             
             # Find the oldest available metric in our date range
             oldest_metric = SocialPageGrowth.query.filter(
@@ -227,7 +227,7 @@ class GrowthService:
         Calculate growth acceleration (change in velocity) over time.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             current_date: Current date (defaults to today)
             
         Returns:
@@ -285,7 +285,7 @@ class GrowthService:
             SocialPageGrowth: Saved growth metrics record or None if error
         """
         try:
-            # Check if metrics for this influencer and date already exist
+            # Check if metrics for this social_page and date already exist
             existing = SocialPageGrowth.query.filter_by(
                 social_page_id=metrics_data['social_page_id'],
                 date=metrics_data['date']
@@ -314,10 +314,10 @@ class GrowthService:
     @staticmethod
     def get_growth_metrics(social_page_id, start_date=None, end_date=None):
         """
-        Get growth metrics for an influencer within a date range.
+        Get growth metrics for an social_page within a date range.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             start_date: Start date for metrics (optional)
             end_date: End date for metrics (optional)
             
@@ -338,23 +338,23 @@ class GrowthService:
         return query.all()
     
     @staticmethod
-    def calculate_all_influencers_growth():
+    def calculate_all_social_pages_growth():
         """
-        Calculate growth metrics for all influencers.
+        Calculate growth metrics for all social_pages.
         
         Returns:
             dict: Summary of the calculation results
         """
-        influencers = Influencer.query.all()
+        social_pages = SocialPage.query.all()
         results = {
-            'total': len(influencers),
+            'total': len(social_pages),
             'success': 0,
             'failed': 0
         }
         
-        for influencer in influencers:
+        for social_page in social_pages:
             try:
-                metrics = GrowthService.calculate_growth_metrics(influencer.id)
+                metrics = GrowthService.calculate_growth_metrics(social_page.id)
                 if metrics:
                     results['success'] += 1
                 else:

@@ -1,4 +1,4 @@
-"""Routes for updating influencer data."""
+"""Routes for updating social_page data."""
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -14,49 +14,49 @@ from app.services.apify_service import ApifyService
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/influencer/<int:social_page_id>', methods=['PUT'])
+@bp.route('/social_page/<int:social_page_id>', methods=['PUT'])
 @jwt_required()
-def update_influencer(social_page_id):
-    """Update details for an influencer."""
+def update_social_page(social_page_id):
+    """Update details for an social_page."""
     user_id = get_jwt_identity()
     
-    # Find the influencer
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
-        return jsonify({"error": "Influencer not found"}), 404
+    # Find the social_page
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
+        return jsonify({"error": "social_page not found"}), 404
     
     # Validate the data
     data = request.json
     if not data:
         return jsonify({"error": "No data provided"}), 400
     
-    # Update the influencer data
+    # Update the social_page data
     if 'full_name' in data:
-        influencer.full_name = data['full_name']
+        social_page.full_name = data['full_name']
     
     if 'bio' in data:
-        influencer.bio = data['bio']
+        social_page.bio = data['bio']
     
     if 'profile_image' in data:
-        influencer.profile_image = data['profile_image']
+        social_page.profile_image = data['profile_image']
     
     # Track if metrics-related fields were updated
     metrics_updated = False
     
     if 'followers_count' in data:
-        influencer.followers_count = data['followers_count']
+        social_page.followers_count = data['followers_count']
         metrics_updated = True
     
     if 'following_count' in data:
-        influencer.following_count = data['following_count']
+        social_page.following_count = data['following_count']
         metrics_updated = True
     
     if 'posts_count' in data:
-        influencer.posts_count = data['posts_count']
+        social_page.posts_count = data['posts_count']
         metrics_updated = True
     
     if 'engagement_rate' in data:
-        influencer.engagement_rate = data['engagement_rate']
+        social_page.engagement_rate = data['engagement_rate']
         metrics_updated = True
     
     # Handle categories
@@ -69,22 +69,22 @@ def update_influencer(social_page_id):
                 category = SocialPageCategory(name=category_name, description=f"Category for {category_name}")
                 db.session.add(category)
             categories.append(category)
-        influencer.categories = categories
+        social_page.categories = categories
     
     # Save changes
     db.session.commit()
-    logger.info(f"Updated influencer {influencer.id} - {influencer.username}")
+    logger.info(f"Updated social_page {social_page.id} - {social_page.username}")
     
     # Update metrics if metric-related fields were changed
     engagement_metrics_result = None
     if metrics_updated:
         try:
-            # Update the InfluencerMetric record for today
+            # Update the social_pageMetric record for today
             today = datetime.utcnow().date()
             
             # Check if we already have metrics for today
             existing_metric = SocialPageMetric.query.filter_by(
-                social_page_id=influencer.id,
+                social_page_id=social_page.id,
                 date=today
             ).first()
             
@@ -108,11 +108,11 @@ def update_influencer(social_page_id):
             else:
                 # Create new metric with whatever data we have
                 metric = SocialPageMetric(
-                    social_page_id=influencer.id,
+                    social_page_id=social_page.id,
                     date=today,
-                    followers=influencer.followers_count,
-                    engagement=influencer.engagement_rate,
-                    posts=influencer.posts_count,
+                    followers=social_page.followers_count,
+                    engagement=social_page.engagement_rate,
+                    posts=social_page.posts_count,
                     likes=data.get('likes', 0),
                     comments=data.get('comments', 0),
                     shares=data.get('shares', 0),
@@ -121,73 +121,73 @@ def update_influencer(social_page_id):
                 db.session.add(metric)
             
             db.session.commit()
-            logger.info(f"Updated metrics for influencer {influencer.id} - {influencer.username}")
+            logger.info(f"Updated metrics for social_page {social_page.id} - {social_page.username}")
             
             # Recalculate engagement metrics using EngagementService
-            engagement_metrics_result = EngagementService.calculate_engagement_metrics(influencer.id)
+            engagement_metrics_result = EngagementService.calculate_engagement_metrics(social_page.id)
             if engagement_metrics_result:
-                logger.info(f"Successfully calculated engagement metrics for influencer {influencer.id}")
+                logger.info(f"Successfully calculated engagement metrics for social_page {social_page.id}")
             else:
-                logger.warning(f"Failed to calculate engagement metrics for influencer {influencer.id}")
+                logger.warning(f"Failed to calculate engagement metrics for social_page {social_page.id}")
                 
             # Also calculate reach metrics
             reach_metrics_result = None
             try:
                 from app.services.reach_service import ReachService
-                reach_metrics_result = ReachService.calculate_reach_metrics(influencer.id, user_id)
+                reach_metrics_result = ReachService.calculate_reach_metrics(social_page.id, user_id)
                 if reach_metrics_result:
-                    logger.info(f"Successfully calculated reach metrics for influencer {influencer.id}")
+                    logger.info(f"Successfully calculated reach metrics for social_page {social_page.id}")
                 else:
-                    logger.warning(f"Failed to calculate reach metrics for influencer {influencer.id}")
+                    logger.warning(f"Failed to calculate reach metrics for social_page {social_page.id}")
             except Exception as e:
-                logger.error(f"Error calculating reach metrics for influencer {influencer.id}: {str(e)}")
+                logger.error(f"Error calculating reach metrics for social_page {social_page.id}: {str(e)}")
                 
             # Calculate growth metrics
             growth_metrics_result = None
             try:
                 from app.services.growth_service import GrowthService
-                growth_metrics_result = GrowthService.calculate_growth_metrics(influencer.id)
+                growth_metrics_result = GrowthService.calculate_growth_metrics(social_page.id)
                 if growth_metrics_result:
-                    logger.info(f"Successfully calculated growth metrics for influencer {influencer.id}")
+                    logger.info(f"Successfully calculated growth metrics for social_page {social_page.id}")
                 else:
-                    logger.warning(f"Failed to calculate growth metrics for influencer {influencer.id}")
+                    logger.warning(f"Failed to calculate growth metrics for social_page {social_page.id}")
             except Exception as e:
-                logger.error(f"Error calculating growth metrics for influencer {influencer.id}: {str(e)}")
+                logger.error(f"Error calculating growth metrics for social_page {social_page.id}: {str(e)}")
                 
             # Calculate relevance score (after all other metrics)
             score_metrics_result = None
             try:
                 from app.services.score_service import ScoreService
-                score_metrics_result = ScoreService.calculate_relevance_score(influencer.id)
+                score_metrics_result = ScoreService.calculate_relevance_score(social_page.id)
                 if score_metrics_result:
-                    logger.info(f"Successfully calculated relevance score for influencer {influencer.id}")
+                    logger.info(f"Successfully calculated relevance score for social_page {social_page.id}")
                 else:
-                    logger.warning(f"Failed to calculate relevance score for influencer {influencer.id}")
+                    logger.warning(f"Failed to calculate relevance score for social_page {social_page.id}")
             except Exception as e:
-                logger.error(f"Error calculating relevance score for influencer {influencer.id}: {str(e)}")
+                logger.error(f"Error calculating relevance score for social_page {social_page.id}: {str(e)}")
                 
         except Exception as e:
-            logger.error(f"Error updating metrics for influencer {influencer.id}: {str(e)}")
-            # Don't block the influencer update if metrics update fails
+            logger.error(f"Error updating metrics for social_page {social_page.id}: {str(e)}")
+            # Don't block the social_page update if metrics update fails
     
     # Prepare the response
     response = {
-        "message": "Influencer updated successfully",
-        "influencer": {
-            "id": influencer.id,
-            "username": influencer.username,
-            "full_name": influencer.full_name,
-            "platform": influencer.platform,
-            "profile_url": influencer.profile_url,
-            "profile_image": influencer.profile_image,
-            "bio": influencer.bio,
-            "followers_count": influencer.followers_count,
-            "following_count": influencer.following_count,
-            "posts_count": influencer.posts_count,
-            "engagement_rate": influencer.engagement_rate,
-            "social_score": influencer.social_score,
-            "relevance_score": influencer.relevance_score,
-            "categories": [c.name for c in influencer.categories]
+        "message": "social_page updated successfully",
+        "social_page": {
+            "id": social_page.id,
+            "username": social_page.username,
+            "full_name": social_page.full_name,
+            "platform": social_page.platform,
+            "profile_url": social_page.profile_url,
+            "profile_image": social_page.profile_image,
+            "bio": social_page.bio,
+            "followers_count": social_page.followers_count,
+            "following_count": social_page.following_count,
+            "posts_count": social_page.posts_count,
+            "engagement_rate": social_page.engagement_rate,
+            "social_score": social_page.social_score,
+            "relevance_score": social_page.relevance_score,
+            "categories": [c.name for c in social_page.categories]
         }
     }
     
@@ -269,31 +269,31 @@ def update_influencer(social_page_id):
             "audience_quality_score": score_metrics_result.get('audience_quality_score')
         }
         
-        # Also update the influencer's relevance_score in the response
-        response["influencer"]["relevance_score"] = influencer.relevance_score
+        # Also update the social_page's relevance_score in the response
+        response["social_page"]["relevance_score"] = social_page.relevance_score
     
     return jsonify(response)
 
 
-@bp.route('/influencer/<int:social_page_id>/refresh', methods=['POST'])
+@bp.route('/social_page/<int:social_page_id>/refresh', methods=['POST'])
 @jwt_required()
-def refresh_influencer_data(social_page_id):
+def refresh_social_page_data(social_page_id):
     """
-    Refresh influencer data and fetch recent posts.
+    Refresh social_page data and fetch recent posts.
     
     This endpoint will:
-    1. Fetch the latest influencer profile data from social media
+    1. Fetch the latest social_page profile data from social media
     2. Save that data to our database
     3. Fetch and save recent posts
-    4. Return the updated influencer data
+    4. Return the updated social_page data
     """
     user_id = get_jwt_identity()
-    logger.info(f"User {user_id} requested refresh of influencer {social_page_id}")
+    logger.info(f"User {user_id} requested refresh of social_page {social_page_id}")
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
-        return jsonify({"error": f"Influencer with ID {social_page_id} not found"}), 404
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
+        return jsonify({"error": f"social_page with ID {social_page_id} not found"}), 404
     
     # Get refresh options from request
     refresh_options = request.json or {}
@@ -301,30 +301,30 @@ def refresh_influencer_data(social_page_id):
     
     try:
         # Fetch the latest profile data
-        if influencer.platform == 'instagram':
-            profile_data = ApifyService.fetch_instagram_profile(influencer.username)
-        elif influencer.platform == 'tiktok':
-            profile_data = ApifyService.fetch_tiktok_profile(influencer.username)
-        elif influencer.platform == 'facebook':
-            profile_data = ApifyService.fetch_facebook_profile(influencer.username)
+        if social_page.platform == 'instagram':
+            profile_data = ApifyService.fetch_instagram_profile(social_page.username)
+        elif social_page.platform == 'tiktok':
+            profile_data = ApifyService.fetch_tiktok_profile(social_page.username)
+        elif social_page.platform == 'facebook':
+            profile_data = ApifyService.fetch_facebook_profile(social_page.username)
         else:
-            return jsonify({"error": f"Unsupported platform: {influencer.platform}"}), 400
+            return jsonify({"error": f"Unsupported platform: {social_page.platform}"}), 400
         
         if not profile_data or 'error' in profile_data:
             error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
             return jsonify({"error": error_msg}), 500
         
         # Save the updated data to the database
-        updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+        updated_social_page = SocialMediaService.save_social_page_data(profile_data)
         
-        if not updated_influencer:
-            return jsonify({"error": "Failed to update influencer data"}), 500
+        if not updated_social_page:
+            return jsonify({"error": "Failed to update social_page data"}), 500
         
         # If fetch_posts is True and we don't have the last week of posts, get more posts
         posts_count = 0
         if fetch_posts:
             # Check if we have recent posts
-            recent_posts = SocialMediaService.fetch_influencer_recent_posts(social_page_id, days=7)
+            recent_posts = SocialMediaService.fetch_social_page_recent_posts(social_page_id, days=7)
             
             # If we have fewer posts than expected or post fetching is explicitly requested
             if len(recent_posts) < 5 or refresh_options.get('force_fetch_posts', False):
@@ -333,22 +333,22 @@ def refresh_influencer_data(social_page_id):
                     posts_count = SocialMediaService.save_recent_posts(
                         social_page_id, 
                         profile_data['recent_media'], 
-                        influencer.platform
+                        social_page.platform
                     )
         
         # Prepare response data
         response_data = {
             "status": "success",
-            "message": f"Successfully refreshed data for {influencer.username}",
-            "influencer": {
-                "id": updated_influencer.id,
-                "username": updated_influencer.username,
-                "platform": updated_influencer.platform,
-                "followers_count": updated_influencer.followers_count,
-                "engagement_rate": updated_influencer.engagement_rate,
-                "social_score": updated_influencer.social_score,
-                "posts_count": updated_influencer.posts_count,
-                "updated_at": updated_influencer.updated_at.isoformat() if updated_influencer.updated_at else None
+            "message": f"Successfully refreshed data for {social_page.username}",
+            "social_page": {
+                "id": updated_social_page.id,
+                "username": updated_social_page.username,
+                "platform": updated_social_page.platform,
+                "followers_count": updated_social_page.followers_count,
+                "engagement_rate": updated_social_page.engagement_rate,
+                "social_score": updated_social_page.social_score,
+                "posts_count": updated_social_page.posts_count,
+                "updated_at": updated_social_page.updated_at.isoformat() if updated_social_page.updated_at else None
             },
             "posts": {
                 "fetched": posts_count,
@@ -359,37 +359,37 @@ def refresh_influencer_data(social_page_id):
         return jsonify(response_data), 200
         
     except Exception as e:
-        logger.error(f"Error refreshing influencer {social_page_id}: {str(e)}")
+        logger.error(f"Error refreshing social_page {social_page_id}: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
-@bp.route('/influencer/<int:social_page_id>/fetch-posts', methods=['POST'])
+@bp.route('/social_page/<int:social_page_id>/fetch-posts', methods=['POST'])
 @jwt_required()
 def fetch_posts(social_page_id):
     """
-    Fetch and save recent posts for an influencer.
+    Fetch and save recent posts for an social_page.
     """
     user_id = get_jwt_identity()
-    logger.info(f"User {user_id} requested post fetch for influencer {social_page_id}")
+    logger.info(f"User {user_id} requested post fetch for social_page {social_page_id}")
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
-        return jsonify({"error": f"Influencer with ID {social_page_id} not found"}), 404
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
+        return jsonify({"error": f"social_page with ID {social_page_id} not found"}), 404
     
     try:
         # Fetch the latest profile data to get recent posts
-        if influencer.platform == 'instagram':
-            profile_data = ApifyService.fetch_instagram_profile(influencer.username)
-        elif influencer.platform == 'tiktok':
-            profile_data = ApifyService.fetch_tiktok_profile(influencer.username)
-        elif influencer.platform == 'facebook':
-            profile_data = ApifyService.fetch_facebook_profile(influencer.username)
+        if social_page.platform == 'instagram':
+            profile_data = ApifyService.fetch_instagram_profile(social_page.username)
+        elif social_page.platform == 'tiktok':
+            profile_data = ApifyService.fetch_tiktok_profile(social_page.username)
+        elif social_page.platform == 'facebook':
+            profile_data = ApifyService.fetch_facebook_profile(social_page.username)
         else:
-            return jsonify({"error": f"Unsupported platform: {influencer.platform}"}), 400
+            return jsonify({"error": f"Unsupported platform: {social_page.platform}"}), 400
         
         if not profile_data or 'error' in profile_data:
             error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
@@ -401,17 +401,17 @@ def fetch_posts(social_page_id):
             posts_count = SocialMediaService.save_recent_posts(
                 social_page_id, 
                 profile_data['recent_media'], 
-                influencer.platform
+                social_page.platform
             )
         
         return jsonify({
             "status": "success",
-            "message": f"Successfully fetched posts for {influencer.username}",
+            "message": f"Successfully fetched posts for {social_page.username}",
             "posts_fetched": posts_count
         }), 200
         
     except Exception as e:
-        logger.error(f"Error fetching posts for influencer {social_page_id}: {str(e)}")
+        logger.error(f"Error fetching posts for social_page {social_page_id}: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         
@@ -422,13 +422,13 @@ def fetch_posts(social_page_id):
 @jwt_required()
 def fetch_posts_for_all():
     """
-    Fetch and save recent posts for all influencers or a filtered subset.
+    Fetch and save recent posts for all social_pages or a filtered subset.
     
-    This endpoint allows batch fetching posts for multiple influencers.
-    You can filter by platform and limit the number of influencers processed.
+    This endpoint allows batch fetching posts for multiple social_pages.
+    You can filter by platform and limit the number of social_pages processed.
     """
     user_id = get_jwt_identity()
-    logger.info(f"User {user_id} requested batch post fetch for influencers")
+    logger.info(f"User {user_id} requested batch post fetch for social_pages")
     
     # Get filter parameters from request
     data = request.json or {}
@@ -437,7 +437,7 @@ def fetch_posts_for_all():
     days_history = data.get('days', 7)  # Default to 7 days of post history
     
     try:
-        # Build query to get influencers
+        # Build query to get social_pages
         query = SocialPage.query
         
         # Filter by platform if specified
@@ -451,41 +451,41 @@ def fetch_posts_for_all():
         if limit and isinstance(limit, int) and limit > 0:
             query = query.limit(limit)
             
-        # Get the influencers
-        influencers = query.all()
+        # Get the social_pages
+        social_pages = query.all()
         
-        if not influencers:
+        if not social_pages:
             return jsonify({
                 "status": "warning",
-                "message": "No influencers found matching the criteria"
+                "message": "No social_pages found matching the criteria"
             }), 200
             
-        logger.info(f"Found {len(influencers)} influencers to process")
+        logger.info(f"Found {len(social_pages)} social_pages to process")
         
-        # Process each influencer
+        # Process each social_page
         results = {
-            "total": len(influencers),
+            "total": len(social_pages),
             "successful": 0,
             "failed": 0,
             "details": []
         }
         
-        for influencer in influencers:
+        for social_page in social_pages:
             try:
                 # Fetch the profile data to get recent posts
-                if influencer.platform == 'instagram':
-                    profile_data = ApifyService.fetch_instagram_profile(influencer.username)
-                elif influencer.platform == 'tiktok':
-                    profile_data = ApifyService.fetch_tiktok_profile(influencer.username)
-                elif influencer.platform == 'facebook':
-                    profile_data = ApifyService.fetch_facebook_profile(influencer.username)
+                if social_page.platform == 'instagram':
+                    profile_data = ApifyService.fetch_instagram_profile(social_page.username)
+                elif social_page.platform == 'tiktok':
+                    profile_data = ApifyService.fetch_tiktok_profile(social_page.username)
+                elif social_page.platform == 'facebook':
+                    profile_data = ApifyService.fetch_facebook_profile(social_page.username)
                 else:
                     results["details"].append({
-                        "social_page_id": influencer.id,
-                        "username": influencer.username,
-                        "platform": influencer.platform,
+                        "social_page_id": social_page.id,
+                        "username": social_page.username,
+                        "platform": social_page.platform,
                         "status": "error",
-                        "message": f"Unsupported platform: {influencer.platform}"
+                        "message": f"Unsupported platform: {social_page.platform}"
                     })
                     results["failed"] += 1
                     continue
@@ -493,9 +493,9 @@ def fetch_posts_for_all():
                 if not profile_data or 'error' in profile_data:
                     error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch profile data'
                     results["details"].append({
-                        "social_page_id": influencer.id,
-                        "username": influencer.username,
-                        "platform": influencer.platform,
+                        "social_page_id": social_page.id,
+                        "username": social_page.username,
+                        "platform": social_page.platform,
                         "status": "error",
                         "message": error_msg
                     })
@@ -506,39 +506,39 @@ def fetch_posts_for_all():
                 posts_count = 0
                 if 'recent_media' in profile_data and profile_data['recent_media']:
                     posts_count = SocialMediaService.save_recent_posts(
-                        influencer.id, 
+                        social_page.id, 
                         profile_data['recent_media'], 
-                        influencer.platform
+                        social_page.platform
                     )
                 
-                # Update the influencer data too
-                updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+                # Update the social_page data too
+                updated_social_page = SocialMediaService.save_social_page_data(profile_data)
                 
                 if posts_count > 0:
                     results["details"].append({
-                        "social_page_id": influencer.id,
-                        "username": influencer.username,
-                        "platform": influencer.platform,
+                        "social_page_id": social_page.id,
+                        "username": social_page.username,
+                        "platform": social_page.platform,
                         "status": "success",
                         "posts_fetched": posts_count
                     })
                     results["successful"] += 1
                 else:
                     results["details"].append({
-                        "social_page_id": influencer.id,
-                        "username": influencer.username,
-                        "platform": influencer.platform,
+                        "social_page_id": social_page.id,
+                        "username": social_page.username,
+                        "platform": social_page.platform,
                         "status": "warning",
                         "message": "No posts were found or saved"
                     })
                     results["failed"] += 1
                     
             except Exception as e:
-                logger.error(f"Error processing influencer {influencer.id}: {str(e)}")
+                logger.error(f"Error processing social_page {social_page.id}: {str(e)}")
                 results["details"].append({
-                    "social_page_id": influencer.id,
-                    "username": influencer.username,
-                    "platform": influencer.platform,
+                    "social_page_id": social_page.id,
+                    "username": social_page.username,
+                    "platform": social_page.platform,
                     "status": "error",
                     "message": str(e)
                 })
@@ -548,7 +548,7 @@ def fetch_posts_for_all():
         # Return summary of results
         return jsonify({
             "status": "success",
-            "message": f"Processed {len(influencers)} influencers: {results['successful']} successful, {results['failed']} failed",
+            "message": f"Processed {len(social_pages)} social_pages: {results['successful']} successful, {results['failed']} failed",
             "results": results
         }), 200
         

@@ -10,9 +10,8 @@ from app.api.analytics.schemas import (
     SentimentAnalysisRequestSchema, 
     SentimentAnalysisResponseSchema,
     PostSentimentAnalysisSchema,
-    InfluencerSentimentAnalysisSchema
 )
-from app.models import SocialPagePost, SocialPagePostComment
+from app.models import  SocialPagePost, SocialPagePostComment
 from app.services.oauth_service import get_token
 
 # Create blueprint
@@ -55,7 +54,7 @@ def analyze_sentiment():
 def get_post_comments(post_id):
     """Get all comments for a post with sentiment analysis."""
     try:
-        post = SocialPost.query.get(post_id)
+        post = SocialPagePost.query.get(post_id)
         if not post:
             return jsonify({"error": "Post not found"}), 404
         
@@ -121,16 +120,16 @@ def get_post_sentiment(post_id):
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
-@bp.route('/influencer/<int:influencer_id>/sentiment', methods=['GET'])
+@bp.route('/social_page/<int:social_page_id>/sentiment', methods=['GET'])
 @jwt_required()
-def get_influencer_sentiment(influencer_id):
-    """Get sentiment analysis for an influencer across all posts."""
+def get_social_page_sentiment(social_page_id):
+    """Get sentiment analysis for an social_page across all posts."""
     try:
         # Parse time range from query parameters (default to 30 days)
         time_range = request.args.get('time_range', 30, type=int)
         
-        # Get sentiment analysis for the influencer
-        analysis = SentimentService.get_influencer_sentiment_analysis(influencer_id, time_range)
+        # Get sentiment analysis for the social_page
+        analysis = SentimentService.get_social_page_sentiment_analysis(social_page_id, time_range)
         
         # Check for errors
         if 'error' in analysis:
@@ -142,7 +141,7 @@ def get_influencer_sentiment(influencer_id):
                 error_status = 401
             elif error_code in ['permission_denied', 'forbidden']:
                 error_status = 403
-            elif error_code in ['not_found', 'influencer_not_found', 'profile_not_found']:
+            elif error_code in ['not_found', 'social_page_not_found', 'profile_not_found']:
                 error_status = 404
             elif error_code in ['rate_limit']:
                 error_status = 429
@@ -150,8 +149,7 @@ def get_influencer_sentiment(influencer_id):
             return jsonify({"error": error_code, "message": analysis.get('message', '')}), error_status
             
         # Validate and serialize response
-        response_schema = InfluencerSentimentAnalysisSchema()
-        return jsonify(response_schema.dump(analysis))
+        return analysis
         
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500

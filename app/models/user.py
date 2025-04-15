@@ -46,7 +46,7 @@ class User(db.Model):
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('users', lazy='dynamic'))
     social_tokens = db.relationship('SocialToken', backref='user', lazy='dynamic')
     organizations = db.relationship('Organization', secondary=organization_users, backref=db.backref('users', lazy='dynamic'))
-    influencers = db.relationship('Influencer', backref='user', lazy='dynamic')
+    social_pages = db.relationship('SocialPage', backref='user', lazy='dynamic')
     
     def set_password(self, password):
         """Set the password hash from a plaintext password."""

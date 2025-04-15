@@ -23,17 +23,17 @@ class VisualizationService:
         Get engagement metrics formatted for visualization.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             time_range: Number of days to include (default: 30)
             
         Returns:
             dict: Engagement visualization data
         """
         try:
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Calculate date range
@@ -88,8 +88,8 @@ class VisualizationService:
                 },
                 "metadata": {
                     "social_page_id": social_page_id,
-                    "platform": influencer.platform,
-                    "username": influencer.username,
+                    "platform": social_page.platform,
+                    "username": social_page.username,
                     "start_date": start_date.isoformat(),
                     "end_date": end_date.isoformat(),
                     "time_range_days": time_range
@@ -99,7 +99,7 @@ class VisualizationService:
             return visualization_data
             
         except Exception as e:
-            logger.error(f"Error generating engagement visualization for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error generating engagement visualization for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -110,17 +110,17 @@ class VisualizationService:
         Get reach metrics formatted for visualization.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             time_range: Number of days to include (default: 30)
             
         Returns:
             dict: Reach visualization data
         """
         try:
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Calculate date range
@@ -182,8 +182,8 @@ class VisualizationService:
                 },
                 "metadata": {
                     "social_page_id": social_page_id,
-                    "platform": influencer.platform,
-                    "username": influencer.username,
+                    "platform": social_page.platform,
+                    "username": social_page.username,
                     "start_date": start_date.isoformat(),
                     "end_date": end_date.isoformat(),
                     "time_range_days": time_range
@@ -193,7 +193,7 @@ class VisualizationService:
             return visualization_data
             
         except Exception as e:
-            logger.error(f"Error generating reach visualization for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error generating reach visualization for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -204,17 +204,17 @@ class VisualizationService:
         Get growth metrics formatted for visualization.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             time_range: Number of days to include (default: 30)
             
         Returns:
             dict: Growth visualization data
         """
         try:
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Calculate date range
@@ -276,8 +276,8 @@ class VisualizationService:
                 },
                 "metadata": {
                     "social_page_id": social_page_id,
-                    "platform": influencer.platform,
-                    "username": influencer.username,
+                    "platform": social_page.platform,
+                    "username": social_page.username,
                     "start_date": start_date.isoformat(),
                     "end_date": end_date.isoformat(),
                     "time_range_days": time_range
@@ -287,7 +287,7 @@ class VisualizationService:
             return visualization_data
             
         except Exception as e:
-            logger.error(f"Error generating growth visualization for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error generating growth visualization for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -298,17 +298,17 @@ class VisualizationService:
         Get score metrics formatted for visualization.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             time_range: Number of days to include (default: 30)
             
         Returns:
             dict: Score visualization data
         """
         try:
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Calculate date range
@@ -396,8 +396,8 @@ class VisualizationService:
                 },
                 "metadata": {
                     "social_page_id": social_page_id,
-                    "platform": influencer.platform,
-                    "username": influencer.username,
+                    "platform": social_page.platform,
+                    "username": social_page.username,
                     "start_date": start_date.isoformat(),
                     "end_date": end_date.isoformat(),
                     "time_range_days": time_range
@@ -407,7 +407,7 @@ class VisualizationService:
             return visualization_data
             
         except Exception as e:
-            logger.error(f"Error generating score visualization for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error generating score visualization for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -418,16 +418,16 @@ class VisualizationService:
         Get a comprehensive overview of all metrics for the dashboard.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             
         Returns:
             dict: Dashboard overview data
         """
         try:
-            # Get the influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
-                logger.error(f"Influencer with ID {social_page_id} not found")
+            # Get the social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
+                logger.error(f"social_page with ID {social_page_id} not found")
                 return None
             
             # Get the latest metrics
@@ -449,17 +449,17 @@ class VisualizationService:
             
             # Prepare the overview data
             overview_data = {
-                "influencer": {
-                    "id": influencer.id,
-                    "username": influencer.username,
-                    "platform": influencer.platform,
-                    "full_name": influencer.full_name,
-                    "profile_image": influencer.profile_image,
-                    "followers_count": influencer.followers_count,
-                    "following_count": influencer.following_count,
-                    "posts_count": influencer.posts_count,
-                    "engagement_rate": influencer.engagement_rate,
-                    "relevance_score": influencer.relevance_score
+                "social_page": {
+                    "id": social_page.id,
+                    "username": social_page.username,
+                    "platform": social_page.platform,
+                    "full_name": social_page.full_name,
+                    "profile_image": social_page.profile_image,
+                    "followers_count": social_page.followers_count,
+                    "following_count": social_page.following_count,
+                    "posts_count": social_page.posts_count,
+                    "engagement_rate": social_page.engagement_rate,
+                    "relevance_score": social_page.relevance_score
                 },
                 "metrics_summary": {
                     "engagement": {
@@ -502,7 +502,7 @@ class VisualizationService:
             return overview_data
             
         except Exception as e:
-            logger.error(f"Error generating dashboard overview for influencer {social_page_id}: {str(e)}")
+            logger.error(f"Error generating dashboard overview for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None
@@ -510,24 +510,24 @@ class VisualizationService:
     @staticmethod
     def get_comparison_visualization(social_page_ids):
         """
-        Get visualization data for comparing multiple influencers.
+        Get visualization data for comparing multiple social_pages.
         
         Args:
-            social_page_ids: List of influencer IDs to compare
+            social_page_ids: List of social_page IDs to compare
             
         Returns:
             dict: Comparison visualization data
         """
         try:
-            # Get the influencers
-            influencers = SocialPage.query.filter(SocialPage.id.in_(social_page_ids)).all()
-            if not influencers:
-                logger.error(f"No influencers found for IDs: {social_page_ids}")
+            # Get the social_pages
+            social_pages = SocialPage.query.filter(SocialPage.id.in_(social_page_ids)).all()
+            if not social_pages:
+                logger.error(f"No social_pages found for IDs: {social_page_ids}")
                 return None
             
             # Prepare data structure
             comparison_data = {
-                "influencers": [],
+                "social_pages": [],
                 "metrics_comparison": {
                     "followers_count": [],
                     "engagement_rate": [],
@@ -537,60 +537,60 @@ class VisualizationService:
                 }
             }
             
-            # Gather data for each influencer
-            for influencer in influencers:
-                # Add basic influencer info
-                comparison_data["influencers"].append({
-                    "id": influencer.id,
-                    "username": influencer.username,
-                    "platform": influencer.platform,
-                    "followers_count": influencer.followers_count,
-                    "engagement_rate": influencer.engagement_rate,
-                    "relevance_score": influencer.relevance_score
+            # Gather data for each social_page
+            for social_page in social_pages:
+                # Add basic social_page info
+                comparison_data["social_pages"].append({
+                    "id": social_page.id,
+                    "username": social_page.username,
+                    "platform": social_page.platform,
+                    "followers_count": social_page.followers_count,
+                    "engagement_rate": social_page.engagement_rate,
+                    "relevance_score": social_page.relevance_score
                 })
                 
                 # Add metrics data for comparison
                 comparison_data["metrics_comparison"]["followers_count"].append({
-                    "name": influencer.username,
-                    "value": influencer.followers_count
+                    "name": social_page.username,
+                    "value": social_page.followers_count
                 })
                 
                 comparison_data["metrics_comparison"]["engagement_rate"].append({
-                    "name": influencer.username,
-                    "value": influencer.engagement_rate
+                    "name": social_page.username,
+                    "value": social_page.engagement_rate
                 })
                 
                 comparison_data["metrics_comparison"]["relevance_score"].append({
-                    "name": influencer.username,
-                    "value": influencer.relevance_score
+                    "name": social_page.username,
+                    "value": social_page.relevance_score
                 })
                 
                 # Get more detailed metrics
                 latest_reach = SocialPageReach.query.filter_by(
-                    social_page_id=influencer.id
+                    social_page_id=social_page.id
                 ).order_by(SocialPageReach.date.desc()).first()
                 
                 latest_growth = SocialPageGrowth.query.filter_by(
-                    social_page_id=influencer.id
+                    social_page_id=social_page.id
                 ).order_by(SocialPageGrowth.date.desc()).first()
                 
                 # Add reach and growth data if available
                 reach_value = latest_reach.reach if latest_reach else 0
                 comparison_data["metrics_comparison"]["reach"].append({
-                    "name": influencer.username,
+                    "name": social_page.username,
                     "value": reach_value
                 })
                 
                 growth_rate = latest_growth.daily_growth_rate if latest_growth else 0
                 comparison_data["metrics_comparison"]["growth_rate"].append({
-                    "name": influencer.username,
+                    "name": social_page.username,
                     "value": growth_rate
                 })
             
             return comparison_data
             
         except Exception as e:
-            logger.error(f"Error generating comparison visualization for influencers {social_page_ids}: {str(e)}")
+            logger.error(f"Error generating comparison visualization for social_pages {social_page_ids}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return None

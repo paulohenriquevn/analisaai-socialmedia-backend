@@ -15,21 +15,21 @@ class AnalyticsService:
     """Service for calculating and analyzing social media metrics."""
     
     @staticmethod
-    def get_influencer_growth(social_page_id, time_range=30):
+    def get_social_page_growth(social_page_id, time_range=30):
         """
-        Calculate growth metrics for an influencer over a specified time range.
+        Calculate growth metrics for an social_page over a specified time range.
         
         Args:
-            social_page_id: ID of the influencer
+            social_page_id: ID of the social_page
             time_range: Number of days to analyze (default: 30)
             
         Returns:
             dict: Growth metrics
         """
         try:
-            # Get influencer
-            influencer = SocialPage.query.get(social_page_id)
-            if not influencer:
+            # Get social_page
+            social_page = SocialPage.query.get(social_page_id)
+            if not social_page:
                 return None
             
             # Get metrics for the time range
@@ -105,7 +105,7 @@ class AnalyticsService:
             }
             
         except Exception as e:
-            logger.error(f"Error calculating influencer growth: {str(e)}")
+            logger.error(f"Error calculating social_page growth: {str(e)}")
             return None
     
     @staticmethod
@@ -128,10 +128,10 @@ class AnalyticsService:
             if category:
                 query = query.join(SocialPage.categories).filter_by(name=category)
             
-            # Get influencers
-            influencers = query.all()
+            # Get social_pages
+            social_pages = query.all()
             
-            if not influencers:
+            if not social_pages:
                 return {
                     'average_followers': 0,
                     'average_engagement': 0,
@@ -146,8 +146,8 @@ class AnalyticsService:
                 }
             
             # Extract metrics
-            followers = np.array([i.followers_count for i in influencers])
-            engagement = np.array([i.engagement_rate for i in influencers])
+            followers = np.array([i.followers_count for i in social_pages])
+            engagement = np.array([i.engagement_rate for i in social_pages])
             
             # Calculate averages
             avg_followers = np.mean(followers)
@@ -184,16 +184,16 @@ class AnalyticsService:
             return None
     
     @staticmethod
-    def get_influencer_recommendations(user_id, filters=None):
+    def get_social_page_recommendations(user_id, filters=None):
         """
-        Get influencer recommendations based on user preferences and filters.
+        Get social_page recommendations based on user preferences and filters.
         
         Args:
             user_id: User ID to get recommendations for
             filters: Optional filters (platform, category, min_followers, etc.)
             
         Returns:
-            list: Recommended influencers
+            list: Recommended social_pages
         """
         try:
             # Build query
@@ -214,29 +214,29 @@ class AnalyticsService:
                     query = query.filter(SocialPage.engagement_rate >= filters['min_engagement'])
             
             # Order by social score and limit to top 10
-            influencers = query.order_by(SocialPage.social_score.desc()).limit(10).all()
+            social_pages = query.order_by(SocialPage.social_score.desc()).limit(10).all()
             
             # Format response
             recommendations = []
-            for influencer in influencers:
-                categories = [category.name for category in influencer.categories]
+            for social_page in social_pages:
+                categories = [category.name for category in social_page.categories]
                 
                 recommendations.append({
-                    'id': influencer.id,
-                    'username': influencer.username,
-                    'full_name': influencer.full_name,
-                    'platform': influencer.platform,
-                    'profile_image': influencer.profile_image,
-                    'followers_count': influencer.followers_count,
-                    'engagement_rate': influencer.engagement_rate,
-                    'social_score': influencer.social_score,
+                    'id': social_page.id,
+                    'username': social_page.username,
+                    'full_name': social_page.full_name,
+                    'platform': social_page.platform,
+                    'profile_image': social_page.profile_image,
+                    'followers_count': social_page.followers_count,
+                    'engagement_rate': social_page.engagement_rate,
+                    'social_score': social_page.social_score,
                     'categories': categories
                 })
             
             return recommendations
             
         except Exception as e:
-            logger.error(f"Error getting influencer recommendations: {str(e)}")
+            logger.error(f"Error getting social_page recommendations: {str(e)}")
             return []
             
     @staticmethod
@@ -415,7 +415,7 @@ class AnalyticsService:
     @cache.memoize(timeout=600)  # Cache for 10 minutes
     def get_platform_distribution():
         """
-        Get distribution of influencers and metrics across different platforms.
+        Get distribution of social_pages and metrics across different platforms.
         This is a heavy calculation so we cache it for 10 minutes.
         
         Returns:
@@ -437,9 +437,9 @@ class AnalyticsService:
                 'last_updated': datetime.utcnow().isoformat()
             }
             
-            total_influencers = 0
+            total_social_pages = 0
             for platform, count, avg_followers, avg_engagement in platform_counts:
-                total_influencers += count
+                total_social_pages += count
                 result['counts'][platform] = count
                 result['followers'][platform] = round(avg_followers or 0)
                 result['engagement'][platform] = round((avg_engagement or 0) * 100, 2)  # Convert to percentage
@@ -447,7 +447,7 @@ class AnalyticsService:
             # Calculate percentages
             result['percentages'] = {}
             for platform in result['counts'].keys():
-                result['percentages'][platform] = round((result['counts'][platform] / total_influencers) * 100, 2)
+                result['percentages'][platform] = round((result['counts'][platform] / total_social_pages) * 100, 2)
             
             return result
             
@@ -480,37 +480,37 @@ class AnalyticsService:
             
             # Get metrics for each category
             for category in categories:
-                # Get influencers in this category
-                influencers = category.influencers.all()
+                # Get social_pages in this category
+                social_pages = category.social_pages.all()
                 
-                if not influencers:
+                if not social_pages:
                     continue
                 
                 # Calculate average metrics
-                followers = [i.followers_count for i in influencers if i.followers_count]
-                engagement = [i.engagement_rate for i in influencers if i.engagement_rate]
+                followers = [i.followers_count for i in social_pages if i.followers_count]
+                engagement = [i.engagement_rate for i in social_pages if i.engagement_rate]
                 
                 avg_followers = np.mean(followers) if followers else 0
                 avg_engagement = np.mean(engagement) if engagement else 0
                 
                 # Store category metrics
                 result['categories'][category.name] = {
-                    'influencer_count': len(influencers),
+                    'social_page_count': len(social_pages),
                     'avg_followers': round(avg_followers),
                     'avg_engagement': round(avg_engagement * 100, 2),  # Convert to percentage
-                    'most_common_platform': AnalyticsService._get_most_common_platform(influencers)
+                    'most_common_platform': AnalyticsService._get_most_common_platform(social_pages)
                 }
                 
                 # Add to top categories list
                 result['top_categories'].append({
                     'name': category.name,
-                    'influencer_count': len(influencers),
+                    'social_page_count': len(social_pages),
                     'avg_followers': round(avg_followers),
                     'avg_engagement': round(avg_engagement * 100, 2)
                 })
             
-            # Sort top categories by influencer count
-            result['top_categories'].sort(key=lambda x: x['influencer_count'], reverse=True)
+            # Sort top categories by social_page count
+            result['top_categories'].sort(key=lambda x: x['social_page_count'], reverse=True)
             result['top_categories'] = result['top_categories'][:10]  # Limit to top 10
             
             return result
@@ -523,16 +523,16 @@ class AnalyticsService:
             }
     
     @staticmethod
-    def _get_most_common_platform(influencers):
-        """Helper method to find the most common platform in a list of influencers."""
-        if not influencers:
+    def _get_most_common_platform(social_pages):
+        """Helper method to find the most common platform in a list of social_pages."""
+        if not social_pages:
             return None
             
         platform_counts = {}
-        for influencer in influencers:
-            if influencer.platform not in platform_counts:
-                platform_counts[influencer.platform] = 0
-            platform_counts[influencer.platform] += 1
+        for social_page in social_pages:
+            if social_page.platform not in platform_counts:
+                platform_counts[social_page.platform] = 0
+            platform_counts[social_page.platform] += 1
             
         if not platform_counts:
             return None

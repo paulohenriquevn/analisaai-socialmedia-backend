@@ -9,10 +9,10 @@ The API provides the following endpoints for visualization data:
 ### 1. Engagement Visualization
 
 ```
-GET /api/analytics/visualization/engagement/{influencer_id}
+GET /api/analytics/visualization/engagement/{social_page_id}
 ```
 
-Returns time series data and insights about engagement metrics for the specified influencer.
+Returns time series data and insights about engagement metrics for the specified social_page.
 
 **Query Parameters:**
 - `time_range`: Number of days to include in the visualization (default: 30)
@@ -23,8 +23,8 @@ Returns time series data and insights about engagement metrics for the specified
   "status": "success",
   "visualization": {
     "meta": {
-      "influencer_id": 123,
-      "influencer_name": "Example User",
+      "social_page_id": 123,
+      "social_page_name": "Example User",
       "platform": "instagram",
       "time_range": 30,
       "start_date": "2023-01-01",
@@ -68,10 +68,10 @@ Returns time series data and insights about engagement metrics for the specified
 ### 2. Reach Visualization
 
 ```
-GET /api/analytics/visualization/reach/{influencer_id}
+GET /api/analytics/visualization/reach/{social_page_id}
 ```
 
-Returns time series data and insights about reach metrics for the specified influencer.
+Returns time series data and insights about reach metrics for the specified social_page.
 
 **Query Parameters:**
 - `time_range`: Number of days to include in the visualization (default: 30)
@@ -82,10 +82,10 @@ Similar to the engagement visualization but with reach-specific metrics like imp
 ### 3. Growth Visualization
 
 ```
-GET /api/analytics/visualization/growth/{influencer_id}
+GET /api/analytics/visualization/growth/{social_page_id}
 ```
 
-Returns time series data and insights about growth metrics for the specified influencer.
+Returns time series data and insights about growth metrics for the specified social_page.
 
 **Query Parameters:**
 - `time_range`: Number of days to include in the visualization (default: 30)
@@ -96,10 +96,10 @@ Similar to other visualizations but with growth-specific metrics like new follow
 ### 4. Score Visualization
 
 ```
-GET /api/analytics/visualization/score/{influencer_id}
+GET /api/analytics/visualization/score/{social_page_id}
 ```
 
-Returns time series data and insights about relevance score metrics for the specified influencer.
+Returns time series data and insights about relevance score metrics for the specified social_page.
 
 **Query Parameters:**
 - `time_range`: Number of days to include in the visualization (default: 30)
@@ -110,10 +110,10 @@ Similar to other visualizations but with score-specific metrics including compon
 ### 5. Dashboard Overview
 
 ```
-GET /api/analytics/visualization/dashboard/{influencer_id}
+GET /api/analytics/visualization/dashboard/{social_page_id}
 ```
 
-Returns a comprehensive dashboard overview with all metrics for the specified influencer.
+Returns a comprehensive dashboard overview with all metrics for the specified social_page.
 
 **Response Format:**
 ```json
@@ -121,8 +121,8 @@ Returns a comprehensive dashboard overview with all metrics for the specified in
   "status": "success",
   "dashboard": {
     "meta": {
-      "influencer_id": 123,
-      "influencer_name": "Example User",
+      "social_page_id": 123,
+      "social_page_name": "Example User",
       "platform": "instagram"
     },
     "engagement": { ... },
@@ -138,16 +138,16 @@ Returns a comprehensive dashboard overview with all metrics for the specified in
 }
 ```
 
-### 6. Compare Influencers
+### 6. Compare social_pages
 
 ```
-GET /api/analytics/visualization/compare?influencer_ids=1,2,3
+GET /api/analytics/visualization/compare?social_page_ids=1,2,3
 ```
 
-Returns comparative data for multiple influencers.
+Returns comparative data for multiple social_pages.
 
 **Query Parameters:**
-- `influencer_ids`: Comma-separated list of influencer IDs to compare
+- `social_page_ids`: Comma-separated list of social_page IDs to compare
 
 **Response Format:**
 ```json
@@ -159,10 +159,10 @@ Returns comparative data for multiple influencers.
       "followers_growth", 
       "relevance_score"
     ],
-    "influencers": [
+    "social_pages": [
       {
-        "influencer_id": 1,
-        "influencer_name": "Influencer A",
+        "social_page_id": 1,
+        "social_page_name": "social_page A",
         "platform": "instagram",
         "metrics": {
           "engagement_rate": 3.5,
@@ -171,8 +171,8 @@ Returns comparative data for multiple influencers.
         }
       },
       {
-        "influencer_id": 2,
-        "influencer_name": "Influencer B",
+        "social_page_id": 2,
+        "social_page_name": "social_page B",
         "platform": "tiktok",
         "metrics": {
           "engagement_rate": 4.2,
@@ -182,7 +182,7 @@ Returns comparative data for multiple influencers.
       }
     ],
     "recommendations": [
-      "Influencer B has higher engagement and growth rates"
+      "social_page B has higher engagement and growth rates"
     ]
   }
 }
@@ -201,7 +201,7 @@ All visualization endpoints follow a standard error response format:
 ```
 
 Common error scenarios:
-- 404: Influencer not found or no data available
+- 404: social_page not found or no data available
 - 400: Invalid request parameters
 - 401: Unauthorized access
 - 500: Server error processing the request

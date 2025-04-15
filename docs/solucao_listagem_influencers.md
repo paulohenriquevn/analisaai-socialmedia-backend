@@ -19,13 +19,13 @@ Após análise do código e da estrutura do sistema, identificamos as seguintes 
 Execute o script de verificação para confirmar se existem influenciadores no banco de dados:
 
 ```bash
-python scripts/check_influencers.py
+python scripts/check_social_page.py
 ```
 
 Se não houver influenciadores, execute o script de seed para adicionar exemplos:
 
 ```bash
-python scripts/seed_influencers.py
+python scripts/seed_social_page.py
 ```
 
 ### Passo 2: Corrigir o Formato da Resposta
@@ -34,7 +34,7 @@ O guia prático espera que o endpoint retorne os dados no seguinte formato:
 
 ```json
 {
-  "influencers": [...],
+  "social_page": [...],
   "pagination": {
     "page": 1,
     "per_page": 10,
@@ -48,7 +48,7 @@ No entanto, a implementação original retornava:
 
 ```json
 {
-  "influencers": [...],
+  "social_page": [...],
   "meta": {
     "page": 1,
     "per_page": 10,
@@ -58,7 +58,7 @@ No entanto, a implementação original retornava:
 }
 ```
 
-**Solução**: Modificamos o código em `app/api/influencers/routes/__init__.py` para usar `pagination` em vez de `meta` na resposta.
+**Solução**: Modificamos o código em `app/api/social_page/routes/__init__.py` para usar `pagination` em vez de `meta` na resposta.
 
 ### Passo 3: Verificar a Autenticação
 
@@ -74,12 +74,12 @@ Se houver problemas com a função `paginate()` do SQLAlchemy, você pode implem
 
 ```python
 # Implementação alternativa sem usar paginate()
-query = Influencer.query
+query = SocialPage.query
 if platform:
     query = query.filter_by(platform=platform)
 
 total = query.count()
-items = query.order_by(Influencer.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
+items = query.order_by(SocialPage.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
 ```
 
 ## Verificação Final
@@ -107,5 +107,5 @@ Teste o endpoint com um token válido:
 TOKEN=$(python -c 'from scripts.test_api_endpoints import login_and_get_token; print(login_and_get_token())')
 
 # Teste o endpoint usando curl
-curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/influencers
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/social_page
 ```

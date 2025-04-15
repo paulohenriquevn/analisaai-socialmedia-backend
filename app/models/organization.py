@@ -7,7 +7,7 @@ from app.extensions import db
 # We need to reference it but can't import it directly to avoid circular imports
 
 class Organization(db.Model):
-    """Organization model for grouping users and managed influencers."""
+    """Organization model for grouping users and managed socialpage."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)

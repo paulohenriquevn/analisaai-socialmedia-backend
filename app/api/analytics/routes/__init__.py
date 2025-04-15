@@ -30,15 +30,13 @@ bp.register_blueprint(growth_bp, url_prefix='/growth')
 bp.register_blueprint(score_bp, url_prefix='/score')
 bp.register_blueprint(visualization_bp, url_prefix='/visualization')
 
-@bp.route('/influencer/<int:influencer_id>/growth', methods=['GET'])
+@bp.route('/social-page/<int:social_id>/growth', methods=['GET'])
 @jwt_required()
-def get_influencer_growth(influencer_id):
-    """Get growth metrics for an influencer."""
-    # Parse time range from query parameters (default to 30 days)
+def get_social_page_growth(social_id):
     time_range = request.args.get('time_range', 30, type=int)
     
     # Get growth metrics
-    growth_data = AnalyticsService.get_influencer_growth(influencer_id, time_range)
+    growth_data = AnalyticsService.get_social_page_growth(social_id, time_range)
     
     if not growth_data:
         return jsonify({"error": "Failed to calculate growth metrics"}), 400
@@ -70,7 +68,7 @@ def get_benchmarks():
 @bp.route('/recommendations', methods=['GET'])
 @jwt_required()
 def get_recommendations():
-    """Get influencer recommendations based on filters."""
+    """Get SocialPage recommendations based on filters."""
     user_id = int(get_jwt_identity())
     
     # Parse filters from query parameters
@@ -85,7 +83,7 @@ def get_recommendations():
         filters['min_engagement'] = float(request.args.get('min_engagement'))
     
     # Get recommendations
-    recommendations = AnalyticsService.get_influencer_recommendations(user_id, filters)
+    recommendations = AnalyticsService.get_social_page_recommendations(user_id, filters)
     
     return jsonify({
         "recommendations": recommendations

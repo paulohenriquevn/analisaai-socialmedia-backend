@@ -1,5 +1,5 @@
 """
-Influencer-related routes.
+social_page-related routes.
 """
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -10,12 +10,12 @@ from app.services.oauth_service import get_token
 from app.services.social_media_service import SocialMediaService
 
 # Create blueprint
-bp = Blueprint('influencers', __name__)
+bp = Blueprint('social_page', __name__)
 
 @bp.route('', methods=['GET'])
 @jwt_required()
-def get_influencers():
-    """Get all influencers with pagination."""
+def get_social_page():
+    """Get all social_page with pagination."""
     # Parse query parameters
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -27,11 +27,11 @@ def get_influencers():
     
     # Get paginated results
     total = query.count()
-    influencers = query.order_by(SocialPage.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
+    social_page = query.order_by(SocialPage.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
     
     # Format response
     return jsonify({
-        "influencers": [
+        "social_page": [
             {
                 "id": i.id,
                 "username": i.username,
@@ -42,7 +42,7 @@ def get_influencers():
                 "social_score": i.social_score,
                 "profile_image": i.profile_image
             }
-            for i in influencers
+            for i in social_page
         ],
         "pagination": {
             "page": page,
@@ -53,35 +53,35 @@ def get_influencers():
     })
 
 
-@bp.route('/<int:influencer_id>', methods=['GET'])
+@bp.route('/<int:social_page_id>', methods=['GET'])
 @jwt_required()
-def get_influencer(influencer_id):
-    """Get detailed information about a specific influencer."""
-    influencer = SocialPage.query.get(influencer_id)
+def get_social_page_by_id(social_page_id):
+    """Get detailed information about a specific social_page."""
+    social_page = SocialPage.query.get(social_page_id)
     
-    if not influencer:
-        return jsonify({"error": "Influencer not found"}), 404
+    if not social_page:
+        return jsonify({"error": "social_page not found"}), 404
     
     # Get latest metrics
-    latest_metrics = influencer.metrics.order_by(SocialPageMetric.date.desc()).first()
+    latest_metrics = social_page.metrics.order_by(SocialPageMetric.date.desc()).first()
     
     # Format categories
-    categories = [{"id": c.id, "name": c.name} for c in influencer.categories]
+    categories = [{"id": c.id, "name": c.name} for c in social_page.categories]
     
     return jsonify({
-        "influencer": {
-            "id": influencer.id,
-            "username": influencer.username,
-            "full_name": influencer.full_name,
-            "platform": influencer.platform,
-            "profile_url": influencer.profile_url,
-            "profile_image": influencer.profile_image,
-            "bio": influencer.bio,
-            "followers_count": influencer.followers_count,
-            "following_count": influencer.following_count,
-            "posts_count": influencer.posts_count,
-            "engagement_rate": influencer.engagement_rate,
-            "social_score": influencer.social_score,
+        "social_page": {
+            "id": social_page.id,
+            "username": social_page.username,
+            "full_name": social_page.full_name,
+            "platform": social_page.platform,
+            "profile_url": social_page.profile_url,
+            "profile_image": social_page.profile_image,
+            "bio": social_page.bio,
+            "followers_count": social_page.followers_count,
+            "following_count": social_page.following_count,
+            "posts_count": social_page.posts_count,
+            "engagement_rate": social_page.engagement_rate,
+            "social_score": social_page.social_score,
             "categories": categories,
             "latest_metrics": {
                 "date": latest_metrics.date.isoformat() if latest_metrics else None,
@@ -99,8 +99,8 @@ def get_influencer(influencer_id):
 
 @bp.route('/lookup', methods=['POST'])
 @jwt_required()
-def lookup_influencer():
-    """Look up an influencer by username and platform, fetch latest data."""
+def lookup_social_page():
+    """Look up an social_page by username and platform, fetch latest data."""
     user_id = int(get_jwt_identity())
     data = request.json
     
@@ -131,27 +131,27 @@ def lookup_influencer():
     if not profile_data:
         return jsonify({"error": f"Failed to fetch {platform} profile for {username}"}), 400
     
-    # Save influencer data to database
-    influencer = SocialMediaService.save_influencer_data(profile_data)
+    # Save social_page data to database
+    social_page = SocialMediaService.save_social_page_data(profile_data)
     
-    if not influencer:
-        return jsonify({"error": "Failed to save influencer data"}), 500
+    if not social_page:
+        return jsonify({"error": "Failed to save social_page data"}), 500
     
     # Format response
-    categories = [{"id": c.id, "name": c.name} for c in influencer.categories]
+    categories = [{"id": c.id, "name": c.name} for c in social_page.categories]
     
     return jsonify({
-        "influencer": {
-            "id": influencer.id,
-            "username": influencer.username,
-            "full_name": influencer.full_name,
-            "platform": influencer.platform,
-            "profile_url": influencer.profile_url,
-            "profile_image": influencer.profile_image,
-            "bio": influencer.bio,
-            "followers_count": influencer.followers_count,
-            "engagement_rate": influencer.engagement_rate,
-            "social_score": influencer.social_score,
+        "social_page": {
+            "id": social_page.id,
+            "username": social_page.username,
+            "full_name": social_page.full_name,
+            "platform": social_page.platform,
+            "profile_url": social_page.profile_url,
+            "profile_image": social_page.profile_image,
+            "bio": social_page.bio,
+            "followers_count": social_page.followers_count,
+            "engagement_rate": social_page.engagement_rate,
+            "social_score": social_page.social_score,
             "categories": categories
         }
     })

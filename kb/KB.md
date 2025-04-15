@@ -71,7 +71,7 @@ Além disso, o backend deve ser capaz de considerar as características do públ
   ```python  
   # Exemplo de estrutura no MongoDB  
   {  
-    "influencer_id": "12345",  
+    "social_page_id": "12345",  
     "platform": "Instagram",  
     "metrics": {  
       "engagement": 10000,  
@@ -95,10 +95,10 @@ Além disso, o backend deve ser capaz de considerar as características do públ
 
 ---
 
-## **Exemplo de Uso: Avaliação de um Influencer**  
+## **Exemplo de Uso: Avaliação de um Social Page**  
 
 ### **Cenário**:  
-- **Influencer**: @ViajanteDigital  
+- **Social Page**: @ViajanteDigital  
 - **Plataforma**: Instagram  
 - **Objetivo**: Aumentar conversões para um patrocinador de viagens.  
 

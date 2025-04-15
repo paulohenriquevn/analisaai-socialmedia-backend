@@ -169,11 +169,11 @@ Common issues users may encounter:
 
 ## Social Media Post Management
 
-The AnalisaAI platform now supports fetching and storing social media posts for influencers, which enables more accurate metrics calculation and historical data analysis.
+The AnalisaAI platform now supports fetching and storing social media posts for social_pages, which enables more accurate metrics calculation and historical data analysis.
 
 ### Automatic Post Collection
 
-When an influencer profile is fetched via the API or manually updated, the system will:
+When an social_page profile is fetched via the API or manually updated, the system will:
 
 1. Fetch the most recent posts (typically the last 5-25 posts, depending on the platform)
 2. Store these posts in the database with engagement metrics
@@ -181,12 +181,12 @@ When an influencer profile is fetched via the API or manually updated, the syste
 
 ### Post Fetching API Endpoints
 
-#### Refresh Influencer Data (including posts)
+#### Refresh social_page Data (including posts)
 
-Fetch fresh data for an influencer, including their recent posts:
+Fetch fresh data for an social_page, including their recent posts:
 
 ```
-POST /api/social-media/influencer/<influencer_id>/refresh
+POST /api/social-media/social_page/<social_page_id>/refresh
 ```
 
 **Authentication**: Bearer Token (JWT)
@@ -208,7 +208,7 @@ Parameters:
 {
   "status": "success",
   "message": "Successfully refreshed data for username",
-  "influencer": {
+  "social_page": {
     "id": 123,
     "username": "username",
     "platform": "instagram",
@@ -226,10 +226,10 @@ Parameters:
 
 #### Dedicated Post Fetching Endpoint
 
-To explicitly fetch posts without updating the influencer profile:
+To explicitly fetch posts without updating the social_page profile:
 
 ```
-POST /api/social-media/influencer/<influencer_id>/fetch-posts
+POST /api/social-media/social_page/<social_page_id>/fetch-posts
 ```
 
 **Authentication**: Bearer Token (JWT)
@@ -248,7 +248,7 @@ POST /api/social-media/influencer/<influencer_id>/fetch-posts
 For bulk operations or scheduled post fetching, use the included script:
 
 ```bash
-python scripts/fetch_influencer_posts.py [--platform instagram|tiktok|facebook] [--limit 10]
+python scripts/fetch_social_page_posts.py [--platform instagram|tiktok|facebook] [--limit 10]
 ```
 
 This script can be configured to run as a scheduled task (cron job) to keep the post data up-to-date.

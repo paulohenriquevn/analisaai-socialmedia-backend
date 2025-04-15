@@ -79,7 +79,7 @@ class SocialMediaConnectResponse(Schema):
     external_id = fields.String()
     username = fields.String()
     created_at = fields.DateTime()
-    influencer_id = fields.Integer(allow_none=True)
+    social_page_id = fields.Integer(allow_none=True)
     relevance_score = fields.Float(required=False)
     engagement_metrics = fields.Nested(EngagementMetricsSchema, required=False)
     reach_metrics = fields.Nested(ReachMetricsSchema, required=False)

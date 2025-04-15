@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def get_score_metrics(social_page_id):
     """
-    Get relevance score metrics for a specific influencer.
+    Get relevance score metrics for a specific social_page.
     
     Optional query parameters:
     - start_date: Filter metrics after this date (YYYY-MM-DD)
@@ -28,12 +28,12 @@ def get_score_metrics(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {social_page_id} not found"
+            "message": f"social_page with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -96,11 +96,11 @@ def get_score_metrics(social_page_id):
     
     return jsonify({
         "status": "success",
-        "influencer": {
-            "id": influencer.id,
-            "username": influencer.username,
-            "platform": influencer.platform,
-            "relevance_score": influencer.relevance_score
+        "social_page": {
+            "id": social_page.id,
+            "username": social_page.username,
+            "platform": social_page.platform,
+            "relevance_score": social_page.relevance_score
         },
         "metrics": result
     })
@@ -108,16 +108,16 @@ def get_score_metrics(social_page_id):
 @bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
 def calculate_score(social_page_id):
-    """Calculate and save relevance score for an influencer."""
+    """Calculate and save relevance score for an social_page."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {social_page_id} not found"
+            "message": f"social_page with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
@@ -144,18 +144,18 @@ def calculate_score(social_page_id):
             "consistency_score": metrics['consistency_score'],
             "audience_quality_score": metrics['audience_quality_score']
         },
-        "current_relevance_score": influencer.relevance_score
+        "current_relevance_score": social_page.relevance_score
     })
 
 @bp.route('/calculate-all', methods=['POST'])
 @jwt_required()
 def calculate_all_scores():
-    """Calculate relevance scores for all influencers."""
+    """Calculate relevance scores for all social_pages."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Calculate metrics for all influencers
-    results = ScoreService.calculate_all_influencers_scores()
+    # Calculate metrics for all social_pages
+    results = ScoreService.calculate_all_social_pages_scores()
     
     return jsonify({
         "status": "success",
@@ -167,15 +167,15 @@ def calculate_all_scores():
 @jwt_required()
 def compare_scores():
     """
-    Compare relevance scores of multiple influencers.
+    Compare relevance scores of multiple social_pages.
     
     Required query parameters:
-    - social_page_ids: Comma-separated list of influencer IDs to compare
+    - social_page_ids: Comma-separated list of social_page IDs to compare
     """
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Get influencer IDs from request
+    # Get social_page IDs from request
     social_page_ids_param = request.args.get('social_page_ids')
     if not social_page_ids_param:
         return jsonify({
@@ -183,7 +183,7 @@ def compare_scores():
             "message": "Missing required parameter: social_page_ids"
         }), 400
     
-    # Parse influencer IDs
+    # Parse social_page IDs
     try:
         social_page_ids = [int(id_str) for id_str in social_page_ids_param.split(',')]
     except ValueError:
@@ -192,14 +192,14 @@ def compare_scores():
             "message": "Invalid social_page_ids format. Must be comma-separated integers."
         }), 400
     
-    # Get influencers with their scores
-    influencers = SocialPage.query.filter(SocialPage.id.in_(social_page_ids)).all()
+    # Get social_pages with their scores
+    social_pages = SocialPage.query.filter(SocialPage.id.in_(social_page_ids)).all()
     
     # Format response
     result = []
-    for influencer in influencers:
+    for social_page in social_pages:
         # Get most recent score metrics (returns already ordered by date descending)
-        score_metrics = ScoreService.get_score_metrics(influencer.id)
+        score_metrics = ScoreService.get_score_metrics(social_page.id)
         # Take only the most recent entry if available
         if score_metrics:
             score_metrics = score_metrics[:1]
@@ -218,10 +218,10 @@ def compare_scores():
             }
         
         result.append({
-            "id": influencer.id,
-            "username": influencer.username,
-            "platform": influencer.platform,
-            "relevance_score": influencer.relevance_score,
+            "id": social_page.id,
+            "username": social_page.username,
+            "platform": social_page.platform,
+            "relevance_score": social_page.relevance_score,
             "score_details": score_details
         })
     

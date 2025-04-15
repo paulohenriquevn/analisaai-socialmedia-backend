@@ -8,7 +8,7 @@ Ao consultar o perfil da Virginia, observamos que vários campos estão vazios:
 
 ```json
 {
-    "influencer": {
+    "social_page": {
         "bio": null,
         "categories": [],
         "engagement_rate": 0,
@@ -64,7 +64,7 @@ Outra opção é reconectar a conta da Virginia usando o endpoint de conexão. F
 
 3. Verifique se os dados foram preenchidos corretamente:
    ```
-   GET /api/influencers/1
+   GET /api/social_pages/1
    ```
 
 ## Solução 3: Atualizar Manualmente via API
@@ -72,7 +72,7 @@ Outra opção é reconectar a conta da Virginia usando o endpoint de conexão. F
 Também criamos um endpoint específico para atualizar os dados dos influenciadores:
 
 ```
-PUT /api/social-media/influencer/1
+PUT /api/social-media/social_page/1
 ```
 
 Com o corpo:
@@ -110,7 +110,7 @@ Após a atualização, o perfil da Virginia deve conter:
 Após aplicar qualquer uma das soluções acima, verifique se o problema foi resolvido consultando:
 
 ```
-GET /api/influencers/1
+GET /api/social_pages/1
 ```
 
 O perfil retornado deve conter todos os dados completos e as categorias associadas.

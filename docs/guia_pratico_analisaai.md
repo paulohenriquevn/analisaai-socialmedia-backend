@@ -1,6 +1,6 @@
 # Guia Prático de Uso da API AnalisaAI
 
-Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Media para analisar o perfil da influencer 'Virginia Fonseca'. Você aprenderá a executar todas as chamadas (requests) da collection do Insomnia em uma sequência lógica.
+Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Media para analisar o perfil da social_page 'Virginia Fonseca'. Você aprenderá a executar todas as chamadas (requests) da collection do Insomnia em uma sequência lógica.
 
 ## Requisitos
 
@@ -134,12 +134,12 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 #### 2.1.1 Listar Influenciadores
 
-**Request**: `GET {{BASE_URL}}/api/influencers?page=1&per_page=10`
+**Request**: `GET {{BASE_URL}}/api/social_pages?page=1&per_page=10`
 
 **Exemplo de resposta**:
 ```json
 {
-  "influencers": [
+  "social_pages": [
     {
       "id": 1,
       "username": "virginia",
@@ -159,9 +159,9 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 }
 ```
 
-#### 2.1.2 Detalhes da Influencer Virginia
+#### 2.1.2 Detalhes da social_page Virginia
 
-**Request**: `GET {{BASE_URL}}/api/influencers/1`  
+**Request**: `GET {{BASE_URL}}/api/social_pages/1`  
 (Supondo que o ID da Virginia seja 1, use o ID correto obtido na listagem)
 
 **Exemplo de resposta**:
@@ -185,7 +185,7 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 #### 2.1.3 Pesquisar Influenciador (Virginia)
 
-**Request**: `POST {{BASE_URL}}/api/influencers/lookup`
+**Request**: `POST {{BASE_URL}}/api/social_pages/lookup`
 
 ```json
 {
@@ -198,7 +198,7 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 ```json
 {
   "found": true,
-  "influencer": {
+  "social_page": {
     "id": 1,
     "username": "virginia",
     "full_name": "Virginia Fonseca",
@@ -213,7 +213,7 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 #### 2.2.1 Buscar Influenciadores (Lifestyle)
 
-**Request**: `GET {{BASE_URL}}/api/search/influencers?q=lifestyle&platform=instagram&min_followers=1000000`
+**Request**: `GET {{BASE_URL}}/api/search/social_pages?q=lifestyle&platform=instagram&min_followers=1000000`
 
 **Exemplo de resposta**:
 ```json
@@ -259,15 +259,15 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 ### 3.1 Analytics Gerais
 
-#### 3.1.1 Crescimento da Influencer Virginia
+#### 3.1.1 Crescimento da social_page Virginia
 
-**Request**: `GET {{BASE_URL}}/api/analytics/influencer/1/growth`  
+**Request**: `GET {{BASE_URL}}/api/analytics/social_page/1/growth`  
 (Supondo que o ID da Virginia seja 1)
 
 **Exemplo de resposta**:
 ```json
 {
-  "influencer_id": 1,
+  "social_page_id": 1,
   "username": "virginia",
   "platform": "instagram",
   "growth_metrics": {
@@ -350,15 +350,15 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 }
 ```
 
-#### 3.2.4 Sentimento da Influencer Virginia
+#### 3.2.4 Sentimento da social_page Virginia
 
-**Request**: `GET {{BASE_URL}}/api/analytics/sentiment/influencer/1/sentiment`  
+**Request**: `GET {{BASE_URL}}/api/analytics/sentiment/social_page/1/sentiment`  
 (Supondo que o ID da Virginia seja 1)
 
 **Exemplo de resposta**:
 ```json
 {
-  "influencer_id": 1,
+  "social_page_id": 1,
   "username": "virginia",
   "platform": "instagram",
   "overall_sentiment": {
@@ -454,13 +454,13 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 #### 3.3.2 Performance por Tipo de Conteúdo (Virginia)
 
-**Request**: `GET {{BASE_URL}}/api/analytics/posting-time/content-types?influencer_id=1`  
+**Request**: `GET {{BASE_URL}}/api/analytics/posting-time/content-types?social_page_id=1`  
 (Supondo que o ID da Virginia seja 1)
 
 **Exemplo de resposta**:
 ```json
 {
-  "influencer_id": 1,
+  "social_page_id": 1,
   "username": "virginia",
   "platform": "instagram",
   "content_performance": {
@@ -486,13 +486,13 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 #### 3.3.3 Análise por Dia da Semana (Virginia)
 
-**Request**: `GET {{BASE_URL}}/api/analytics/posting-time/days-of-week?influencer_id=1`  
+**Request**: `GET {{BASE_URL}}/api/analytics/posting-time/days-of-week?social_page_id=1`  
 (Supondo que o ID da Virginia seja 1)
 
 **Exemplo de resposta**:
 ```json
 {
-  "influencer_id": 1,
+  "social_page_id": 1,
   "username": "virginia",
   "platform": "instagram",
   "day_performance": [
@@ -511,13 +511,13 @@ Este guia apresenta um passo a passo para utilizar a API do AnalisaAI Social Med
 
 #### 3.3.5 Recomendações Personalizadas (Virginia)
 
-**Request**: `GET {{BASE_URL}}/api/analytics/posting-time/recommendations?influencer_id=1`  
+**Request**: `GET {{BASE_URL}}/api/analytics/posting-time/recommendations?social_page_id=1`  
 (Supondo que o ID da Virginia seja 1)
 
 **Exemplo de resposta**:
 ```json
 {
-  "influencer_id": 1,
+  "social_page_id": 1,
   "username": "virginia",
   "platform": "instagram",
   "personalized_recommendations": [

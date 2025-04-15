@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def get_growth_metrics(social_page_id):
     """
-    Get growth metrics for a specific influencer.
+    Get growth metrics for a specific social_page.
     
     Optional query parameters:
     - start_date: Filter metrics after this date (YYYY-MM-DD)
@@ -28,12 +28,12 @@ def get_growth_metrics(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {social_page_id} not found"
+            "message": f"social_page with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -98,11 +98,11 @@ def get_growth_metrics(social_page_id):
     
     return jsonify({
         "status": "success",
-        "influencer": {
-            "id": influencer.id,
-            "username": influencer.username,
-            "platform": influencer.platform,
-            "followers_count": influencer.followers_count
+        "social_page": {
+            "id": social_page.id,
+            "username": social_page.username,
+            "platform": social_page.platform,
+            "followers_count": social_page.followers_count
         },
         "metrics": result
     })
@@ -110,16 +110,16 @@ def get_growth_metrics(social_page_id):
 @bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
 def calculate_growth(social_page_id):
-    """Calculate and save growth metrics for an influencer."""
+    """Calculate and save growth metrics for an social_page."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {social_page_id} not found"
+            "message": f"social_page with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
@@ -144,12 +144,12 @@ def calculate_growth(social_page_id):
 @bp.route('/calculate-all', methods=['POST'])
 @jwt_required()
 def calculate_all_growth():
-    """Calculate growth metrics for all influencers."""
+    """Calculate growth metrics for all social_page."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Calculate metrics for all influencers
-    results = GrowthService.calculate_all_influencers_growth()
+    # Calculate metrics for all social_page
+    results = GrowthService.calculate_all_social_pages_growth()
     
     return jsonify({
         "status": "success",

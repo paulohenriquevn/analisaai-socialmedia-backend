@@ -12,8 +12,8 @@ The Automatic Metrics Update feature ensures that metrics and scores are recalcu
 
 When a user logs in:
 
-1. The system fetches the most recently updated social media data for up to 5 influencers
-2. For each influencer, the following metrics are calculated:
+1. The system fetches the most recently updated social media data for up to 5 social_pages
+2. For each social_page, the following metrics are calculated:
    - Engagement metrics (engagement rate, avg likes/comments, etc.)
    - Reach metrics (impressions, story views, etc.)
    - Growth metrics (new followers, retention rates, etc.)
@@ -25,8 +25,8 @@ When a user logs in:
 
 When a user refreshes their authentication token:
 
-1. The system identifies the oldest updated influencer
-2. A background thread is spawned to calculate all metrics for this influencer
+1. The system identifies the oldest updated social_page
+2. A background thread is spawned to calculate all metrics for this social_page
 3. Token refresh is not blocked or delayed by the metrics calculation
 4. Updates are performed asynchronously to ensure rapid token refresh response
 
@@ -37,8 +37,8 @@ When a user refreshes their authentication token:
 The login flow update is implemented in `/app/api/auth/routes/__init__.py` in the `/login` endpoint. It:
 
 - Prioritizes older entries first (sorted by `updated_at`)
-- Limits updates to 5 influencers per login to prevent long login times
-- Handles errors for each influencer separately to ensure continued processing
+- Limits updates to 5 social_pages per login to prevent long login times
+- Handles errors for each social_page separately to ensure continued processing
 - Updates profile data first, then calculates metrics based on the new data
 - Follows a specific sequence for metric calculation:
   1. Engagement metrics (base metrics)
@@ -50,7 +50,7 @@ The login flow update is implemented in `/app/api/auth/routes/__init__.py` in th
 
 The token refresh update is implemented in the `/refresh` endpoint and:
 
-- Updates a single influencer to minimize server load
+- Updates a single social_page to minimize server load
 - Runs in a separate thread to avoid blocking the token refresh
 - Ensures sequential calculation of metrics to maintain data consistency
 
@@ -58,7 +58,7 @@ The token refresh update is implemented in the `/refresh` endpoint and:
 
 Both update processes include comprehensive error handling:
 
-- Individual influencer failures don't stop the entire process
+- Individual social_page failures don't stop the entire process
 - Metrics calculation failures are logged but don't affect user experience
 - Login and token refresh operations are never blocked by update failures
 

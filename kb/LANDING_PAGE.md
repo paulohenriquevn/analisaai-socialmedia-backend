@@ -197,7 +197,7 @@
 | Grupo de Anúncios | Palavras-Chave                  | Cabeçalho 1                 | Descrição                                  | CTA               |  
 |--------------------|----------------------------------|-----------------------------|--------------------------------------------|-------------------|  
 | Score Grátis       | "analisar perfil Instagram"     | **Seu Score em 30s!**       | "Descubra seu potencial com IA. Grátis!"   | "Teste Agora →"   |  
-| Planos Premium     | "ferramenta análise influencers"| **Torne-se um Expert!**     | "Relatórios detalhados e comparações. "    | "Assine Premium"  |  
+| Planos Premium     | "ferramenta análise social page"| **Torne-se um Expert!**     | "Relatórios detalhados e comparações. "    | "Assine Premium"  |  
 
 ---
 

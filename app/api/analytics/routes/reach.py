@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def get_reach_metrics(social_page_id):
     """
-    Get reach metrics for a specific influencer.
+    Get reach metrics for a specific social_page.
     
     Optional query parameters:
     - start_date: Filter metrics after this date (YYYY-MM-DD)
@@ -28,12 +28,12 @@ def get_reach_metrics(social_page_id):
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {social_page_id} not found"
+            "message": f"social_page with ID {social_page_id} not found"
         }), 404
     
     # Parse date parameters
@@ -96,10 +96,10 @@ def get_reach_metrics(social_page_id):
     
     return jsonify({
         "status": "success",
-        "influencer": {
-            "id": influencer.id,
-            "username": influencer.username,
-            "platform": influencer.platform
+        "social_page": {
+            "id": social_page.id,
+            "username": social_page.username,
+            "platform": social_page.platform
         },
         "metrics": result
     })
@@ -107,16 +107,16 @@ def get_reach_metrics(social_page_id):
 @bp.route('/calculate/<int:social_page_id>', methods=['POST'])
 @jwt_required()
 def calculate_reach(social_page_id):
-    """Calculate and save reach metrics for an influencer."""
+    """Calculate and save reach metrics for an social_page."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Check if influencer exists
-    influencer = SocialPage.query.get(social_page_id)
-    if not influencer:
+    # Check if social_page exists
+    social_page = SocialPage.query.get(social_page_id)
+    if not social_page:
         return jsonify({
             "status": "error",
-            "message": f"Influencer with ID {social_page_id} not found"
+            "message": f"social_page with ID {social_page_id} not found"
         }), 404
     
     # Calculate metrics
@@ -140,12 +140,12 @@ def calculate_reach(social_page_id):
 @bp.route('/calculate-all', methods=['POST'])
 @jwt_required()
 def calculate_all_reach():
-    """Calculate reach metrics for all influencers."""
+    """Calculate reach metrics for all social_pages."""
     # Get current user
     current_user_id = get_jwt_identity()
     
-    # Calculate metrics for all influencers
-    results = ReachService.calculate_all_influencers_reach()
+    # Calculate metrics for all social_pages
+    results = ReachService.calculate_all_social_pages_reach()
     
     return jsonify({
         "status": "success",

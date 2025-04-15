@@ -22,14 +22,14 @@ Essa coleta ocorre através de:
 Os dados de posts são essenciais para análises precisas de horários de publicação e podem ser obtidos a partir dos seguintes endpoints:
 
 ```
-POST /api/social-media/influencer/<influencer_id>/refresh
-POST /api/social-media/influencer/<influencer_id>/fetch-posts
+POST /api/social-media/social-page/<social_page_id>/refresh
+POST /api/social-media/social-page/<social_page_id>/fetch-posts
 ```
 
 Também é possível usar o script para coleta em lote:
 
 ```bash
-python scripts/fetch_influencer_posts.py [--platform instagram|tiktok|facebook] [--limit 10]
+python scripts/fetch_social_page_posts.py [--platform instagram|tiktok|facebook] [--limit 10]
 ```
 
 ## Recursos Principais

@@ -171,7 +171,7 @@ class EngagementService:
         return query.all()
     
     @staticmethod
-    def calculate_all_SocialPages_metrics():
+    def calculate_all_social_pages_metrics():
         """
         Calculate engagement metrics for all SocialPages.
         

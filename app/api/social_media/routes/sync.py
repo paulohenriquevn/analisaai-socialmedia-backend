@@ -10,22 +10,22 @@ from app.api.social_media import bp
 
 logger = logging.getLogger(__name__)
 
-@bp.route('/sync-influencers', methods=['POST'])
+@bp.route('/sync-social-pages', methods=['POST'])
 @jwt_required()
-def sync_influencers():
+def sync_social_pages():
     """
-    Manually trigger a sync of influencer data using Apify.
-    This endpoint allows refreshing data for all or selected influencers.
+    Manually trigger a sync of social_page data using Apify.
+    This endpoint allows refreshing data for all or selected social_pages.
     """
     current_user_id = get_jwt_identity()
     
     # Get request parameters
     data = request.json or {}
-    social_page_ids = data.get('social_page_ids', [])  # Optional list of specific influencer IDs to sync
-    limit = data.get('limit', 100)  # Maximum number of influencers to sync
+    social_page_ids = data.get('social_page_ids', [])  # Optional list of specific social_page IDs to sync
+    limit = data.get('limit', 100)  # Maximum number of social_pages to sync
     
     try:
-        # Get influencers to sync
+        # Get social_pages to sync
         query = SocialPage.query
         
         # Filter by specific IDs if provided
@@ -36,31 +36,31 @@ def sync_influencers():
         query = query.order_by(SocialPage.updated_at.asc())
         
         # Apply limit
-        influencers = query.limit(limit).all()
+        social_pages = query.limit(limit).all()
         
-        if not influencers:
+        if not social_pages:
             return jsonify({
                 "status": "error",
-                "message": "No influencers found to sync"
+                "message": "No social_pages found to sync"
             }), 404
         
         # Track results
         results = {
-            "total": len(influencers),
+            "total": len(social_pages),
             "success": 0,
             "failed": 0,
             "details": []
         }
         
-        # Process all selected influencers
-        for influencer in influencers:
-            platform = influencer.platform
-            username = influencer.username
+        # Process all selected social_pages
+        for social_page in social_pages:
+            platform = social_page.platform
+            username = social_page.username
             
             if not platform or not username:
                 results["failed"] += 1
                 results["details"].append({
-                    "social_page_id": influencer.id,
+                    "social_page_id": social_page.id,
                     "status": "failed",
                     "message": "Missing platform or username"
                 })
@@ -79,7 +79,7 @@ def sync_influencers():
                 else:
                     results["failed"] += 1
                     results["details"].append({
-                        "social_page_id": influencer.id,
+                        "social_page_id": social_page.id,
                         "platform": platform,
                         "username": username,
                         "status": "failed",
@@ -87,38 +87,38 @@ def sync_influencers():
                     })
                     continue
                     
-                # Update the influencer data if successful
+                # Update the social_page data if successful
                 if profile_data and 'error' not in profile_data:
-                    updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+                    updated_social_page = SocialMediaService.save_social_page_data(profile_data)
                     
                     # Calculate engagement and reach metrics
-                    if updated_influencer:
+                    if updated_social_page:
                         try:
                             # Calculate engagement metrics
                             from app.services.engagement_service import EngagementService
-                            engagement_metrics = EngagementService.calculate_engagement_metrics(updated_influencer.id)
+                            engagement_metrics = EngagementService.calculate_engagement_metrics(updated_social_page.id)
                             logger.info(f"Calculated engagement metrics for {username} after sync")
                             
                             # Calculate reach metrics
                             from app.services.reach_service import ReachService
-                            reach_metrics = ReachService.calculate_reach_metrics(updated_influencer.id, current_user_id)
+                            reach_metrics = ReachService.calculate_reach_metrics(updated_social_page.id, current_user_id)
                             logger.info(f"Calculated reach metrics for {username} after sync")
                             
                             # Calculate growth metrics
                             from app.services.growth_service import GrowthService
-                            growth_metrics = GrowthService.calculate_growth_metrics(updated_influencer.id)
+                            growth_metrics = GrowthService.calculate_growth_metrics(updated_social_page.id)
                             logger.info(f"Calculated growth metrics for {username} after sync")
                             
                             # Calculate relevance score (after all other metrics)
                             from app.services.score_service import ScoreService
-                            score_metrics = ScoreService.calculate_relevance_score(updated_influencer.id)
+                            score_metrics = ScoreService.calculate_relevance_score(updated_social_page.id)
                             logger.info(f"Calculated relevance score for {username} after sync")
                         except Exception as e:
                             logger.error(f"Error calculating metrics for {username}: {str(e)}")
                     
                     results["success"] += 1
                     results["details"].append({
-                        "social_page_id": influencer.id,
+                        "social_page_id": social_page.id,
                         "platform": platform,
                         "username": username,
                         "status": "success",
@@ -129,7 +129,7 @@ def sync_influencers():
                     error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch data'
                     results["failed"] += 1
                     results["details"].append({
-                        "social_page_id": influencer.id,
+                        "social_page_id": social_page.id,
                         "platform": platform,
                         "username": username,
                         "status": "failed",
@@ -139,7 +139,7 @@ def sync_influencers():
             except Exception as e:
                 results["failed"] += 1
                 results["details"].append({
-                    "social_page_id": influencer.id,
+                    "social_page_id": social_page.id,
                     "platform": platform,
                     "username": username,
                     "status": "failed",
@@ -155,34 +155,34 @@ def sync_influencers():
     except Exception as e:
         return jsonify({
             "status": "error",
-            "message": f"Error syncing influencers: {str(e)}"
+            "message": f"Error syncing social_page: {str(e)}"
         }), 500
 
-@bp.route('/sync-influencer/<int:social_page_id>', methods=['POST'])
+@bp.route('/sync-social-page/<int:social_page_id>', methods=['POST'])
 @jwt_required()
-def sync_single_influencer(social_page_id):
+def sync_single_social_page(social_page_id):
     """
-    Sync a single influencer by ID.
+    Sync a single social_page by ID.
     """
     current_user_id = get_jwt_identity()
     
     try:
-        # Get the influencer
-        influencer = SocialPage.query.get(social_page_id)
+        # Get the social_page
+        social_page = SocialPage.query.get(social_page_id)
         
-        if not influencer:
+        if not social_page:
             return jsonify({
                 "status": "error",
-                "message": f"Influencer with ID {social_page_id} not found"
+                "message": f"social_page with ID {social_page_id} not found"
             }), 404
         
-        platform = influencer.platform
-        username = influencer.username
+        platform = social_page.platform
+        username = social_page.username
         
         if not platform or not username:
             return jsonify({
                 "status": "error",
-                "message": "Influencer missing platform or username"
+                "message": "social_page missing platform or username"
             }), 400
         
         # Use Apify to fetch updated profile data
@@ -200,34 +200,34 @@ def sync_single_influencer(social_page_id):
                 "message": f"Unsupported platform: {platform}"
             }), 400
         
-        # Update the influencer data if successful
+        # Update the social_page data if successful
         if profile_data and 'error' not in profile_data:
-            updated_influencer = SocialMediaService.save_influencer_data(profile_data)
+            updated_social_page = SocialMediaService.save_social_page_data(profile_data)
             
             # Calculate metrics
             engagement_metrics_result = None
             reach_metrics_result = None
             
-            if updated_influencer:
+            if updated_social_page:
                 try:
                     # Calculate engagement metrics
                     from app.services.engagement_service import EngagementService
-                    engagement_metrics_result = EngagementService.calculate_engagement_metrics(updated_influencer.id)
+                    engagement_metrics_result = EngagementService.calculate_engagement_metrics(updated_social_page.id)
                     logger.info(f"Calculated engagement metrics for {username} after sync")
                     
                     # Calculate reach metrics
                     from app.services.reach_service import ReachService
-                    reach_metrics_result = ReachService.calculate_reach_metrics(updated_influencer.id, current_user_id)
+                    reach_metrics_result = ReachService.calculate_reach_metrics(updated_social_page.id, current_user_id)
                     logger.info(f"Calculated reach metrics for {username} after sync")
                     
                     # Calculate growth metrics
                     from app.services.growth_service import GrowthService
-                    growth_metrics_result = GrowthService.calculate_growth_metrics(updated_influencer.id)
+                    growth_metrics_result = GrowthService.calculate_growth_metrics(updated_social_page.id)
                     logger.info(f"Calculated growth metrics for {username} after sync")
                     
                     # Calculate relevance score (after all other metrics)
                     from app.services.score_service import ScoreService
-                    score_metrics_result = ScoreService.calculate_relevance_score(updated_influencer.id)
+                    score_metrics_result = ScoreService.calculate_relevance_score(updated_social_page.id)
                     logger.info(f"Calculated relevance score for {username} after sync")
                 except Exception as e:
                     logger.error(f"Error calculating metrics for {username}: {str(e)}")
@@ -236,14 +236,14 @@ def sync_single_influencer(social_page_id):
             response = {
                 "status": "success",
                 "message": f"Successfully synced {platform} data for {username}",
-                "influencer": {
-                    "id": updated_influencer.id,
-                    "username": updated_influencer.username,
-                    "platform": updated_influencer.platform,
-                    "followers_count": updated_influencer.followers_count,
-                    "engagement_rate": updated_influencer.engagement_rate,
-                    "relevance_score": updated_influencer.relevance_score,
-                    "updated_at": updated_influencer.updated_at.isoformat() if updated_influencer.updated_at else None
+                "social_page": {
+                    "id": updated_social_page.id,
+                    "username": updated_social_page.username,
+                    "platform": updated_social_page.platform,
+                    "followers_count": updated_social_page.followers_count,
+                    "engagement_rate": updated_social_page.engagement_rate,
+                    "relevance_score": updated_social_page.relevance_score,
+                    "updated_at": updated_social_page.updated_at.isoformat() if updated_social_page.updated_at else None
                 }
             }
             
@@ -325,19 +325,19 @@ def sync_single_influencer(social_page_id):
                     "audience_quality_score": score_metrics_result.get('audience_quality_score')
                 }
                 
-                # Update relevance score in influencer data
-                response["influencer"]["relevance_score"] = updated_influencer.relevance_score
+                # Update relevance score in social_page data
+                response["social_page"]["relevance_score"] = updated_social_page.relevance_score
             
             return jsonify(response)
         else:
             error_msg = profile_data.get('message', 'Unknown error') if profile_data else 'Failed to fetch data'
             return jsonify({
                 "status": "error",
-                "message": f"Failed to sync influencer: {error_msg}"
+                "message": f"Failed to sync social_page: {error_msg}"
             }), 400
             
     except Exception as e:
         return jsonify({
             "status": "error",
-            "message": f"Error syncing influencer: {str(e)}"
+            "message": f"Error syncing social_page: {str(e)}"
         }), 500

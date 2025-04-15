@@ -79,7 +79,7 @@ class PlatformDistributionSchema(Schema):
 
 class CategoryMetricsSchema(Schema):
     """Schema for category metrics."""
-    influencer_count = fields.Integer()
+    social_page_count = fields.Integer()
     avg_followers = fields.Integer()
     avg_engagement = fields.Float()
     most_common_platform = fields.String()
@@ -88,7 +88,7 @@ class CategoryMetricsSchema(Schema):
 class TopCategorySchema(Schema):
     """Schema for top categories."""
     name = fields.String()
-    influencer_count = fields.Integer()
+    social_page_count = fields.Integer()
     avg_followers = fields.Integer()
     avg_engagement = fields.Float()
 
@@ -160,9 +160,9 @@ class PostSentimentAnalysisSchema(Schema):
     error = fields.String(required=False)
 
 
-class InfluencerSentimentAnalysisSchema(Schema):
-    """Schema for influencer sentiment analysis response."""
-    influencer_id = fields.Integer()
+class SocialPageSentimentAnalysisSchema(Schema):
+    """Schema for social_page sentiment analysis response."""
+    social_page_id = fields.Integer()
     posts_count = fields.Integer()
     comments_count = fields.Integer()
     sentiment_distribution = fields.Nested(SentimentDistributionSchema)

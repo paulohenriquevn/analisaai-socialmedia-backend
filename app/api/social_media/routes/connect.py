@@ -58,24 +58,24 @@ def connect_social_media():
     setattr(user, platform_id_field, external_id)
     db.session.commit()
     
-    # Also create or update an influencer record
-    from app.models.social_page import Influencer, Category
+    # Also create or update an socialpage record
+    from app.models import SocialPage, SocialPageCategory
     
     # Clean username (remove @ if present)
     clean_username = username.replace('@', '')
     
-    # Check if influencer already exists
-    influencer = Influencer.query.filter_by(
+    # Check if social_page already exists
+    social_page = SocialPage.query.filter_by(
         username=clean_username,
         platform=platform
     ).first()
     
-    if not influencer:
-        # Create new influencer record
-        logger.info(f"Creating new influencer record for {username} on {platform}")
+    if not social_page:
+        # Create new social_page record
+        logger.info(f"Creating new social_page record for {username} on {platform}")
         
         # Set default values
-        influencer_data = {
+        social_page_data = {
             "username": clean_username,
             "full_name": clean_username,  # Default to username
             "platform": platform,
@@ -102,37 +102,37 @@ def connect_social_media():
                 if profile_data and isinstance(profile_data, dict):
                     logger.info(f"Successfully fetched Instagram data for {clean_username}")
                     
-                    # Update influencer data with real values from API
+                    # Update social_page data with real values from API
                     if 'username' in profile_data:
-                        influencer_data['username'] = profile_data.get('username', clean_username)
+                        social_page_data['username'] = profile_data.get('username', clean_username)
                     
                     if 'full_name' in profile_data:
-                        influencer_data['full_name'] = profile_data.get('full_name', clean_username)
+                        social_page_data['full_name'] = profile_data.get('full_name', clean_username)
                     
                     if 'profile_url' in profile_data:
-                        influencer_data['profile_url'] = profile_data.get('profile_url')
+                        social_page_data['profile_url'] = profile_data.get('profile_url')
                     
                     if 'profile_image' in profile_data:
-                        influencer_data['profile_image'] = profile_data.get('profile_image')
+                        social_page_data['profile_image'] = profile_data.get('profile_image')
                     
                     if 'bio' in profile_data:
-                        influencer_data['bio'] = profile_data.get('bio')
+                        social_page_data['bio'] = profile_data.get('bio')
                     
                     if 'followers_count' in profile_data:
-                        influencer_data['followers_count'] = profile_data.get('followers_count', 0)
+                        social_page_data['followers_count'] = profile_data.get('followers_count', 0)
                     
                     if 'following_count' in profile_data:
-                        influencer_data['following_count'] = profile_data.get('following_count', 0)
+                        social_page_data['following_count'] = profile_data.get('following_count', 0)
                     
                     if 'posts_count' in profile_data:
-                        influencer_data['posts_count'] = profile_data.get('posts_count', 0)
+                        social_page_data['posts_count'] = profile_data.get('posts_count', 0)
                     
                     if 'engagement_rate' in profile_data:
-                        influencer_data['engagement_rate'] = profile_data.get('engagement_rate', 0.0)
+                        social_page_data['engagement_rate'] = profile_data.get('engagement_rate', 0.0)
                     
                     # Calculate social score based on actual data
                     if 'followers_count' in profile_data and 'engagement_rate' in profile_data:
-                        influencer_data['social_score'] = SocialMediaService.calculate_social_score(profile_data)
+                        social_page_data['social_score'] = SocialMediaService.calculate_social_score(profile_data)
                 
             elif platform == "facebook":
                 # Similar implementation for Facebook
@@ -152,47 +152,47 @@ def connect_social_media():
                     for field in ['username', 'full_name', 'profile_url', 'profile_image', 'bio',
                                  'followers_count', 'following_count', 'posts_count', 'engagement_rate']:
                         if field in profile_data:
-                            influencer_data[field] = profile_data.get(field, influencer_data.get(field))
+                            social_page_data[field] = profile_data.get(field, social_page_data.get(field))
                     
                     # Calculate social score
-                    influencer_data['social_score'] = SocialMediaService.calculate_social_score(profile_data)
+                    social_page_data['social_score'] = SocialMediaService.calculate_social_score(profile_data)
             
             # If we have category information from the API, use it
             if profile_data and 'categories' in profile_data and isinstance(profile_data['categories'], list):
-                influencer_data['categories'] = profile_data.get('categories', [])
+                social_page_data['categories'] = profile_data.get('categories', [])
                 
         except Exception as e:
             logger.warning(f"Error fetching profile data from {platform}: {str(e)}")
             logger.warning("Using default values instead")
             # Continue with default values when API fetch fails
         
-        # Create and save influencer
-        influencer = Influencer(**influencer_data)
+        # Create and save social_page
+        social_page = SocialPage(**social_page_data)
         
         # Process categories from profile data if available
-        if hasattr(influencer_data, 'categories') and influencer_data.get('categories'):
-            for cat_name in influencer_data.get('categories', []):
+        if hasattr(social_page_data, 'categories') and social_page_data.get('categories'):
+            for cat_name in social_page_data.get('categories', []):
                 # Look up or create each category
-                category = Category.query.filter_by(name=cat_name).first()
+                category = SocialPageCategory.query.filter_by(name=cat_name).first()
                 if not category:
-                    category = Category(name=cat_name, description=f"Category for {cat_name}")
+                    category = SocialPageCategory(name=cat_name, description=f"Category for {cat_name}")
                     db.session.add(category)
-                influencer.categories.append(category)
+                social_page.categories.append(category)
             logger.info(f"Added categories from profile data for {clean_username}")
         
-        db.session.add(influencer)
+        db.session.add(social_page)
         db.session.commit()
         
-        logger.info(f"Created influencer with ID: {influencer.id}")
+        logger.info(f"Created social_page with ID: {social_page.id}")
     else:
-        logger.info(f"Influencer already exists with ID: {influencer.id}")
+        logger.info(f"social_page already exists with ID: {social_page.id}")
         
-        # If the influencer exists but has missing data, try to update it
-        if (influencer.followers_count == 0 or 
-            influencer.bio is None or 
-            len(influencer.categories) == 0):
+        # If the social_page exists but has missing data, try to update it
+        if (social_page.followers_count == 0 or 
+            social_page.bio is None or 
+            len(social_page.categories) == 0):
             
-            logger.info(f"Influencer {clean_username} has missing data, attempting to update from API")
+            logger.info(f"social_page {clean_username} has missing data, attempting to update from API")
             
             try:
                 # Try to fetch updated data from API
@@ -204,40 +204,40 @@ def connect_social_media():
                     updated_data = SocialMediaService.fetch_tiktok_profile(user_id, clean_username)
                 
                 if updated_data and isinstance(updated_data, dict):
-                    # Update influencer with real data from API
+                    # Update social_page with real data from API
                     if 'full_name' in updated_data:
-                        influencer.full_name = updated_data.get('full_name', influencer.full_name)
+                        social_page.full_name = updated_data.get('full_name', social_page.full_name)
                     
                     if 'bio' in updated_data:
-                        influencer.bio = updated_data.get('bio', influencer.bio)
+                        social_page.bio = updated_data.get('bio', social_page.bio)
                     
                     if 'profile_image' in updated_data:
-                        influencer.profile_image = updated_data.get('profile_image', influencer.profile_image)
+                        social_page.profile_image = updated_data.get('profile_image', social_page.profile_image)
                     
                     if 'followers_count' in updated_data:
-                        influencer.followers_count = updated_data.get('followers_count', influencer.followers_count)
+                        social_page.followers_count = updated_data.get('followers_count', social_page.followers_count)
                     
                     if 'following_count' in updated_data:
-                        influencer.following_count = updated_data.get('following_count', influencer.following_count)
+                        social_page.following_count = updated_data.get('following_count', social_page.following_count)
                     
                     if 'posts_count' in updated_data:
-                        influencer.posts_count = updated_data.get('posts_count', influencer.posts_count)
+                        social_page.posts_count = updated_data.get('posts_count', social_page.posts_count)
                     
                     if 'engagement_rate' in updated_data:
-                        influencer.engagement_rate = updated_data.get('engagement_rate', influencer.engagement_rate)
+                        social_page.engagement_rate = updated_data.get('engagement_rate', social_page.engagement_rate)
                     
                     # Update social score
                     if 'followers_count' in updated_data and 'engagement_rate' in updated_data:
-                        influencer.social_score = SocialMediaService.calculate_social_score(updated_data)
+                        social_page.social_score = SocialMediaService.calculate_social_score(updated_data)
                     
                     # Update categories if available
-                    if 'categories' in updated_data and isinstance(updated_data['categories'], list) and len(influencer.categories) == 0:
+                    if 'categories' in updated_data and isinstance(updated_data['categories'], list) and len(social_page.categories) == 0:
                         for cat_name in updated_data['categories']:
-                            category = Category.query.filter_by(name=cat_name).first()
+                            category = SocialPageCategory.query.filter_by(name=cat_name).first()
                             if not category:
-                                category = Category(name=cat_name, description=f"Category for {cat_name}")
+                                category = SocialPageCategory(name=cat_name, description=f"Category for {cat_name}")
                                 db.session.add(category)
-                            influencer.categories.append(category)
+                            social_page.categories.append(category)
                     
                     db.session.commit()
                     logger.info(f"Updated {clean_username}'s data from API")
@@ -246,53 +246,53 @@ def connect_social_media():
             except Exception as e:
                 logger.warning(f"Error updating {clean_username}'s data: {str(e)}")
     
-    # Calculate metrics for the new/updated influencer
+    # Calculate metrics for the new/updated social_page
     engagement_metrics_result = None
     reach_metrics_result = None
     growth_metrics_result = None
     score_metrics_result = None
     
     try:
-        if influencer:
+        if social_page:
             # Calculate engagement metrics
             from app.services.engagement_service import EngagementService
-            logger.info(f"Calculating engagement metrics for newly connected influencer {influencer.id}")
+            logger.info(f"Calculating engagement metrics for newly connected social_page {social_page.id}")
             
-            engagement_metrics_result = EngagementService.calculate_engagement_metrics(influencer.id)
+            engagement_metrics_result = EngagementService.calculate_engagement_metrics(social_page.id)
             if engagement_metrics_result:
-                logger.info(f"Successfully calculated engagement metrics for influencer {influencer.id}")
+                logger.info(f"Successfully calculated engagement metrics for social_page {social_page.id}")
             else:
-                logger.warning(f"Failed to calculate engagement metrics for influencer {influencer.id}")
+                logger.warning(f"Failed to calculate engagement metrics for social_page {social_page.id}")
                 
             # Calculate reach metrics
             from app.services.reach_service import ReachService
-            logger.info(f"Calculating reach metrics for newly connected influencer {influencer.id}")
+            logger.info(f"Calculating reach metrics for newly connected social_page {social_page.id}")
             
-            reach_metrics_result = ReachService.calculate_reach_metrics(influencer.id, user_id)
+            reach_metrics_result = ReachService.calculate_reach_metrics(social_page.id, user_id)
             if reach_metrics_result:
-                logger.info(f"Successfully calculated reach metrics for influencer {influencer.id}")
+                logger.info(f"Successfully calculated reach metrics for social_page {social_page.id}")
             else:
-                logger.warning(f"Failed to calculate reach metrics for influencer {influencer.id}")
+                logger.warning(f"Failed to calculate reach metrics for social_page {social_page.id}")
                 
             # Calculate growth metrics
             from app.services.growth_service import GrowthService
-            logger.info(f"Calculating growth metrics for newly connected influencer {influencer.id}")
+            logger.info(f"Calculating growth metrics for newly connected social_page {social_page.id}")
             
-            growth_metrics_result = GrowthService.calculate_growth_metrics(influencer.id)
+            growth_metrics_result = GrowthService.calculate_growth_metrics(social_page.id)
             if growth_metrics_result:
-                logger.info(f"Successfully calculated growth metrics for influencer {influencer.id}")
+                logger.info(f"Successfully calculated growth metrics for social_page {social_page.id}")
             else:
-                logger.warning(f"Failed to calculate growth metrics for influencer {influencer.id}")
+                logger.warning(f"Failed to calculate growth metrics for social_page {social_page.id}")
                 
             # Calculate relevance score (after all other metrics)
             from app.services.score_service import ScoreService
-            logger.info(f"Calculating relevance score for newly connected influencer {influencer.id}")
+            logger.info(f"Calculating relevance score for newly connected social_page {social_page.id}")
             
-            score_metrics_result = ScoreService.calculate_relevance_score(influencer.id)
+            score_metrics_result = ScoreService.calculate_relevance_score(social_page.id)
             if score_metrics_result:
-                logger.info(f"Successfully calculated relevance score for influencer {influencer.id}")
+                logger.info(f"Successfully calculated relevance score for social_page {social_page.id}")
             else:
-                logger.warning(f"Failed to calculate relevance score for influencer {influencer.id}")
+                logger.warning(f"Failed to calculate relevance score for social_page {social_page.id}")
     except Exception as e:
         logger.error(f"Error calculating metrics for connected account: {str(e)}")
         # Don't block the main flow if metrics calculation fails
@@ -305,7 +305,7 @@ def connect_social_media():
         "external_id": external_id,
         "username": username,
         "created_at": user.updated_at,
-        "influencer_id": influencer.id if influencer else None
+        "social_page_id": social_page.id if social_page else None
     }
     
     # Add engagement metrics to the response if they were calculated
@@ -386,8 +386,8 @@ def connect_social_media():
             "audience_quality_score": score_metrics_result.get('audience_quality_score')
         }
         
-        if influencer:
+        if social_page:
             # Also add the current relevance score
-            response["relevance_score"] = influencer.relevance_score
+            response["relevance_score"] = social_page.relevance_score
     
     return jsonify(SocialMediaConnectResponse().dump(response)), 201

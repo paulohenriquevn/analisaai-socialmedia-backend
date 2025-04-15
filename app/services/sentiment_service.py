@@ -704,12 +704,12 @@ class SentimentService:
     
     @staticmethod
     @cache.memoize(timeout=600)  # Cache for 10 minutes
-    def get_influencer_sentiment_analysis(influencer_id, time_range=30):
+    def get_social_page_sentiment_analysis(social_page_id, time_range=30):
         """
-        Get aggregated sentiment analysis for an influencer across all posts.
+        Get aggregated sentiment analysis for an social_page across all posts.
         
         Args:
-            influencer_id: ID of the influencer
+            social_page_id: ID of the social_page
             time_range: Number of days to analyze (default: 30)
             
         Returns:
@@ -720,15 +720,15 @@ class SentimentService:
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=time_range)
             
-            # Get all posts for the influencer
+            # Get all posts for the social_page
             posts = SocialPagePost.query.filter(
-                SocialPagePost.influencer_id == influencer_id,
+                SocialPagePost.social_page_id == social_page_id,
                 SocialPagePost.posted_at >= start_date
             ).all()
             
             if not posts:
                 return {
-                    'influencer_id': influencer_id,
+                    'social_page_id': social_page_id,
                     'posts_count': 0,
                     'comments_count': 0,
                     'sentiment_distribution': {
@@ -750,7 +750,7 @@ class SentimentService:
             
             if not comments:
                 return {
-                    'influencer_id': influencer_id,
+                    'social_page_id': social_page_id,
                     'posts_count': len(posts),
                     'comments_count': 0,
                     'sentiment_distribution': {
@@ -848,7 +848,7 @@ class SentimentService:
             }
             
             return {
-                'influencer_id': influencer_id,
+                'social_page_id': social_page_id,
                 'posts_count': len(posts),
                 'comments_count': total_comments,
                 'sentiment_distribution': {
@@ -862,7 +862,7 @@ class SentimentService:
             }
             
         except Exception as e:
-            logger.error(f"Error getting influencer sentiment analysis: {str(e)}")
+            logger.error(f"Error getting social_page sentiment analysis: {str(e)}")
             return {
                 'error': f"Failed to get sentiment analysis: {str(e)}",
                 'last_updated': datetime.utcnow().isoformat()

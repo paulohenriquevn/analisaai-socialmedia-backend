@@ -20,8 +20,8 @@ class MetricTimeSeriesSchema(Schema):
 
 class VisualizationMetaSchema(Schema):
     """Schema for metadata about the visualization."""
-    influencer_id = fields.Integer()
-    influencer_name = fields.String()
+    social_page_id = fields.Integer()
+    social_page_name = fields.String()
     platform = fields.String()
     time_range = fields.Integer()
     start_date = fields.String()
@@ -95,10 +95,10 @@ class DashboardOverviewSchema(Schema):
     recommended_actions = fields.List(fields.String())
     
 
-class InfluencerComparisonItemSchema(Schema):
-    """Schema for an item in the influencer comparison."""
-    influencer_id = fields.Integer()
-    influencer_name = fields.String()
+class SocialPageComparisonItemSchema(Schema):
+    """Schema for an item in the socialpage comparison."""
+    social_page_id = fields.Integer()
+    social_page_name = fields.String()
     platform = fields.String()
     metrics = fields.Dict(keys=fields.String(), values=fields.Float())
     
@@ -106,5 +106,5 @@ class InfluencerComparisonItemSchema(Schema):
 class ComparisonVisualizationSchema(Schema):
     """Schema for comparison visualization."""
     metrics_compared = fields.List(fields.String())
-    influencers = fields.List(fields.Nested(InfluencerComparisonItemSchema))
+    social_pages = fields.List(fields.Nested(SocialPageComparisonItemSchema))
     recommendations = fields.List(fields.String())

@@ -11,7 +11,7 @@ import json
 import logging
 
 from app.extensions import db, oauth
-from app.models import User, Role, SocialToken
+from app.models import User, Role, SocialToken, SocialPage
 from app.services.security_service import generate_tokens, get_user_roles
 from app.services.oauth_service import save_token, get_token
 
@@ -141,32 +141,32 @@ def login():
     # Generate tokens
     tokens = generate_tokens(user.id)
     
-    # Start background process to sync influencer data and calculate all metrics
+    # Start background process to sync social_page data and calculate all metrics
     try:
         # Import task queue service and tasks
         from app.services import task_queue_service
-        from app.api.social_media.routes.tasks import sync_influencer_data
-        from app.models.social_page import Influencer
+        from app.api.social_media.routes.tasks import sync_social_page_data
+        from app.models import SocialPage
         
         logger.info(f"Starting asynchronous metrics update on login for user {user.id}")
         
-        # Get influencers to sync in the main thread with app context
-        influencers = Influencer.query.order_by(Influencer.updated_at.asc()).limit(5).all()
-        influencer_ids = [influencer.id for influencer in influencers]
+        # Get social_page to sync in the main thread with app context
+        social_pages = SocialPage.query.order_by(SocialPage.updated_at.asc()).limit(5).all()
+        social_page_ids = [social_page.id for social_page in social_pages]
         
-        if influencer_ids:
-            logger.info(f"Found {len(influencer_ids)} influencers to update during login")
+        if social_page_ids:
+            logger.info(f"Found {len(social_page_ids)} social_pages to update during login")
             
-            # Enqueue individual sync tasks for each influencer
-            for influencer_id in influencer_ids:
+            # Enqueue individual sync tasks for each social_page
+            for social_page_id in social_page_ids:
                 task_id = task_queue_service.enqueue_task(
-                    sync_influencer_data,
-                    args=[influencer_id, user.id],
-                    description=f"Post-login sync for influencer {influencer_id}"
+                    sync_social_page_data,
+                    args=[social_page_id, user.id],
+                    description=f"Post-login sync for social_page {social_page_id}"
                 )
-                logger.info(f"Enqueued background task {task_id} to sync influencer {influencer_id}")
+                logger.info(f"Enqueued background task {task_id} to sync social_page {social_page_id}")
         else:
-            logger.info("No influencers found to update during login")
+            logger.info("No social_pages found to update during login")
             
     except Exception as e:
         logger.error(f"Error starting background metrics update: {str(e)}")
@@ -204,24 +204,24 @@ def refresh_token():
     try:
         # Import task queue service and tasks
         from app.services import task_queue_service
-        from app.api.social_media.routes.tasks import sync_influencer_data
-        from app.models.social_page import Influencer
+        from app.api.social_media.routes.tasks import sync_social_page_data
+        from app.models import SocialPage
         
         logger.info(f"Starting metrics update in background during token refresh for user {user_id}")
         
-        # Get one oldest updated influencer to refresh
-        influencer = Influencer.query.order_by(Influencer.updated_at.asc()).first()
+        # Get one oldest updated SocialPage to refresh
+        social_page = SocialPage.query.order_by(SocialPage.updated_at.asc()).first()
         
-        if influencer:
-            # Enqueue a single task for this influencer
+        if social_page:
+            # Enqueue a single task for this social_page
             task_id = task_queue_service.enqueue_task(
-                sync_influencer_data,
-                args=[influencer.id, user_id],
-                description=f"Token refresh sync for influencer {influencer.id}"
+                sync_social_page_data,
+                args=[social_page.id, user_id],
+                description=f"Token refresh sync for social_page {social_page.id}"
             )
-            logger.info(f"Enqueued background task {task_id} to sync influencer {influencer.id}")
+            logger.info(f"Enqueued background task {task_id} to sync social_page {social_page.id}")
         else:
-            logger.info("No influencers found to update during token refresh")
+            logger.info("No social_page found to update during token refresh")
             
     except Exception as e:
         logger.error(f"Error starting background metrics update: {str(e)}")
@@ -381,7 +381,7 @@ def facebook_callback():
                 if facebook_username:
                     profile_data = SocialMediaService.fetch_facebook_profile(user_id, facebook_username)
                     if profile_data and 'error' not in profile_data:
-                        SocialMediaService.save_influencer_data(profile_data)
+                        SocialMediaService.save_social_page_data(profile_data)
                         logger.info(f"Successfully fetched and saved Facebook profile data for user {user_id}")
             except Exception as e:
                 logger.error(f"Error fetching Facebook profile data: {str(e)}")
@@ -631,7 +631,7 @@ def instagram_callback():
                 logger.info(f"Successfully retrieved Instagram profile for user {user_id}: {profile_data['username']}")
                 
                 # Store profile data for immediate access
-                SocialMediaService.save_influencer_data(profile_data)
+                SocialMediaService.save_social_page_data(profile_data)
                 logger.info(f"Saved Instagram profile data for user {user_id}")
                 
                 # Update user with Instagram username
@@ -865,7 +865,7 @@ def tiktok_callback():
                 if tiktok_username:
                     profile_data = SocialMediaService.fetch_tiktok_profile(user_id, tiktok_username)
                     if profile_data and 'error' not in profile_data:
-                        SocialMediaService.save_influencer_data(profile_data)
+                        SocialMediaService.save_social_page_data(profile_data)
                         logger.info(f"Successfully fetched and saved TikTok profile data for user {user_id}")
             except Exception as e:
                 logger.error(f"Error fetching TikTok profile data: {str(e)}")

@@ -869,7 +869,7 @@ class SocialMediaService:
     @staticmethod
     def _determine_categories(bio='', recent_content=None):
         """
-        Determine likely categories for an influencer based on bio and content.
+        Determine likely categories for an social_page based on bio and content.
         This is a simple keyword-based approach - in a production system, 
         you would use a more sophisticated ML-based classification.
         """
@@ -911,21 +911,21 @@ class SocialMediaService:
         return [category for category, score in sorted_categories[:3] if score > 0]
     
     @staticmethod
-    def calculate_social_score(influencer_data):
+    def calculate_social_score(social_page_data):
         """
         Calculate a social score based on various metrics.
         
         Args:
-            influencer_data: Dict containing influencer metrics
+            social_page_data: Dict containing social_page_data metrics
             
         Returns:
             float: Social score from 0-100
         """
         # Get relevant metrics
-        platform = influencer_data.get('platform', '').lower()
-        followers = influencer_data.get('followers_count', 0)
-        engagement = influencer_data.get('engagement_rate', 0)
-        posts = influencer_data.get('posts_count', 0)
+        platform = social_page_data.get('platform', '').lower()
+        followers = social_page_data.get('followers_count', 0)
+        engagement = social_page_data.get('engagement_rate', 0)
+        posts = social_page_data.get('posts_count', 0)
         
         # Platform-specific weights
         platform_weights = {
@@ -969,15 +969,15 @@ class SocialMediaService:
         return score
     
     @staticmethod
-    def save_influencer_data(profile_data):
+    def save_social_page_data(profile_data):
         """
-        Save or update influencer profile data in the database.
+        Save or update social_page profile data in the database.
         
         Args:
-            profile_data: Dict containing influencer profile data
+            profile_data: Dict containing social_page profile data
             
         Returns:
-            Influencer: Saved influencer object
+            social_page: Saved social_page object
         """
         if not profile_data:
             return None
@@ -989,8 +989,8 @@ class SocialMediaService:
             logger.error(f"Missing required fields in profile data: platform or username")
             return None
         
-        # Check if influencer already exists
-        influencer = SocialPage.query.filter_by(
+        # Check if social_page already exists
+        social_page = SocialPage.query.filter_by(
             platform=platform,
             username=username
         ).first()
@@ -998,23 +998,23 @@ class SocialMediaService:
         # Calculate social score
         social_score = SocialMediaService.calculate_social_score(profile_data)
         
-        if influencer:
-            # Update existing influencer
-            influencer.full_name = profile_data.get('full_name')
-            influencer.profile_url = profile_data.get('profile_url')
-            influencer.profile_image = profile_data.get('profile_image')
-            influencer.bio = profile_data.get('bio')
-            influencer.followers_count = profile_data.get('followers_count', 0)
-            influencer.following_count = profile_data.get('following_count', 0)
-            influencer.posts_count = profile_data.get('posts_count', 0)
-            influencer.engagement_rate = profile_data.get('engagement_rate', 0)
-            influencer.social_score = social_score
-            influencer.updated_at = datetime.utcnow()
-            logger.info(f"Updated existing influencer: {username} on {platform}")
+        if social_page:
+            # Update existing social_page
+            social_page.full_name = profile_data.get('full_name')
+            social_page.profile_url = profile_data.get('profile_url')
+            social_page.profile_image = profile_data.get('profile_image')
+            social_page.bio = profile_data.get('bio')
+            social_page.followers_count = profile_data.get('followers_count', 0)
+            social_page.following_count = profile_data.get('following_count', 0)
+            social_page.posts_count = profile_data.get('posts_count', 0)
+            social_page.engagement_rate = profile_data.get('engagement_rate', 0)
+            social_page.social_score = social_score
+            social_page.updated_at = datetime.utcnow()
+            logger.info(f"Updated existing social_page: {username} on {platform}")
         else:
-            # Create new influencer
+            # Create new social_page
             try:
-                influencer = SocialPage(
+                social_page = SocialPage(
                     username=username,
                     full_name=profile_data.get('full_name'),
                     platform=platform,
@@ -1027,10 +1027,10 @@ class SocialMediaService:
                     engagement_rate=profile_data.get('engagement_rate', 0),
                     social_score=social_score
                 )
-                db.session.add(influencer)
-                logger.info(f"Created new influencer: {username} on {platform}")
+                db.session.add(social_page)
+                logger.info(f"Created new social_page: {username} on {platform}")
             except Exception as e:
-                logger.error(f"Error creating influencer {username} on {platform}: {str(e)}")
+                logger.error(f"Error creating social_page {username} on {platform}: {str(e)}")
                 db.session.rollback()
                 return None
         
@@ -1041,7 +1041,7 @@ class SocialMediaService:
                 # Check if we already have metrics for today
                 today = datetime.utcnow().date()
                 existing_metric = SocialPageMetric.query.filter_by(
-                    influencer=influencer,
+                    social_page=social_page,
                     date=today
                 ).first()
                 
@@ -1065,7 +1065,7 @@ class SocialMediaService:
                 else:
                     # Create new metric
                     metric = SocialPageMetric(
-                        influencer=influencer,
+                        social_page=social_page,
                         date=today,
                         followers=metrics.get('followers'),
                         engagement=metrics.get('engagement'),
@@ -1088,14 +1088,14 @@ class SocialMediaService:
                         category = SocialPageCategory(name=cat_name, description=f"Category for {cat_name}")
                         db.session.add(category)
                     
-                    # Add category to influencer if not already present
-                    if category not in influencer.categories:
-                        influencer.categories.append(category)
+                    # Add category to social_page if not already present
+                    if category not in social_page.categories:
+                        social_page.categories.append(category)
                 logger.info(f"Added {len(profile_data['categories'])} categories to {username}")
             
             # Save recent posts if available
             if 'recent_media' in profile_data and profile_data['recent_media']:
-                SocialMediaService.save_recent_posts(influencer.id, profile_data['recent_media'], platform)
+                SocialMediaService.save_recent_posts(social_page.id, profile_data['recent_media'], platform)
             
             db.session.commit()
             
@@ -1103,42 +1103,42 @@ class SocialMediaService:
             try:
                 # Import here to avoid circular imports
                 from app.services.engagement_service import EngagementService
-                logger.info(f"Calculating engagement metrics for influencer {influencer.id} - {username}")
+                logger.info(f"Calculating engagement metrics for social_page {social_page.id} - {username}")
                 # Calculate metrics in a try-except block so it doesn't block the main flow if it fails
-                EngagementService.calculate_engagement_metrics(influencer.id)
+                EngagementService.calculate_engagement_metrics(social_page.id)
                 
                 # Calculate reach metrics
                 from app.services.reach_service import ReachService
-                logger.info(f"Calculating reach metrics for influencer {influencer.id} - {username}")
-                ReachService.calculate_reach_metrics(influencer.id)
+                logger.info(f"Calculating reach metrics for social_page {social_page.id} - {username}")
+                ReachService.calculate_reach_metrics(social_page.id)
                 
                 # Calculate growth metrics
                 from app.services.growth_service import GrowthService
-                logger.info(f"Calculating growth metrics for influencer {influencer.id} - {username}")
-                GrowthService.calculate_growth_metrics(influencer.id)
+                logger.info(f"Calculating growth metrics for social_page {social_page.id} - {username}")
+                GrowthService.calculate_growth_metrics(social_page.id)
                 
                 # Calculate relevance score (must be calculated after all other metrics)
                 from app.services.score_service import ScoreService
-                logger.info(f"Calculating relevance score for influencer {influencer.id} - {username}")
-                ScoreService.calculate_relevance_score(influencer.id)
+                logger.info(f"Calculating relevance score for social_page {social_page.id} - {username}")
+                ScoreService.calculate_relevance_score(social_page.id)
             except Exception as e:
                 logger.error(f"Error calculating metrics for {username}: {str(e)}")
-                # Continue anyway, as the basic influencer data is already saved
+                # Continue anyway, as the basic social_page data is already saved
             
-            return influencer
+            return social_page
             
         except Exception as e:
-            logger.error(f"Error saving influencer data for {username} on {platform}: {str(e)}")
+            logger.error(f"Error saving social_page data for {username} on {platform}: {str(e)}")
             db.session.rollback()
             return None
     
     @staticmethod
-    def save_recent_posts(influencer_id, recent_media, platform):
+    def save_recent_posts(social_page_id, recent_media, platform):
         """
-        Save recent social media posts for an influencer.
+        Save recent social media posts for an social_page.
         
         Args:
-            influencer_id (int): The ID of the influencer
+            social_page_id (int): The ID of the social_page
             recent_media (list): List of recent posts from social media platform
             platform (str): Social media platform (instagram, tiktok, facebook)
             
@@ -1147,10 +1147,10 @@ class SocialMediaService:
         """
         from app.models.social_media import SocialPost
         
-        if not recent_media or not influencer_id:
+        if not recent_media or not social_page_id:
             return 0
         
-        logger.info(f"Saving {len(recent_media)} recent posts for influencer {influencer_id}")
+        logger.info(f"Saving {len(recent_media)} recent posts for social_page {social_page_id}")
         posts_saved = 0
         
         try:
@@ -1159,11 +1159,11 @@ class SocialMediaService:
                 # Generate a unique post ID if not provided
                 post_id = post_data.get('id')
                 if not post_id:
-                    # Create a deterministic ID based on influencer ID, URL and timestamp
+                    # Create a deterministic ID based on social_page ID, URL and timestamp
                     import hashlib
                     url = post_data.get('url', '')
                     timestamp = post_data.get('timestamp', '')
-                    data_to_hash = f"{influencer_id}:{url}:{timestamp}"
+                    data_to_hash = f"{social_page_id}:{url}:{timestamp}"
                     post_id = hashlib.md5(data_to_hash.encode()).hexdigest()
                 
                 # Check if post already exists in database
@@ -1224,10 +1224,10 @@ class SocialMediaService:
                     post_data.get('shares', 0)
                 )
                 
-                # Fetch the influencer to get follower count
-                influencer = SocialPage.query.get(influencer_id)
-                if influencer and influencer.followers_count > 0:
-                    engagement_rate = (total_engagement / influencer.followers_count) * 100
+                # Fetch the social_page to get follower count
+                social_page = SocialPage.query.get(social_page_id)
+                if social_page and social_page.followers_count > 0:
+                    engagement_rate = (total_engagement / social_page.followers_count) * 100
                 
                 # Get the data with fallbacks for missing fields
                 content = post_data.get('caption', '')
@@ -1247,13 +1247,13 @@ class SocialMediaService:
                     existing_post.views_count = post_data.get('views', 0)
                     existing_post.engagement_rate = engagement_rate
                     existing_post.updated_at = datetime.utcnow()
-                    logger.info(f"Updated existing post {post_id} for influencer {influencer_id}")
+                    logger.info(f"Updated existing post {post_id} for social_page {social_page_id}")
                 else:
                     # Create new post
                     new_post = SocialPost(
                         platform=platform,
                         post_id=post_id,
-                        influencer_id=influencer_id,
+                        social_page_id=social_page_id,
                         content=content,
                         post_url=post_url,
                         media_url=media_url,
@@ -1267,27 +1267,27 @@ class SocialMediaService:
                     )
                     db.session.add(new_post)
                     posts_saved += 1
-                    logger.info(f"Created new post {post_id} for influencer {influencer_id}")
+                    logger.info(f"Created new post {post_id} for social_page {social_page_id}")
             
             # Commit the session to save all posts at once
             db.session.commit()
-            logger.info(f"Successfully saved {posts_saved} new posts for influencer {influencer_id}")
+            logger.info(f"Successfully saved {posts_saved} new posts for social_page {social_page_id}")
             return posts_saved
             
         except Exception as e:
-            logger.error(f"Error saving posts for influencer {influencer_id}: {str(e)}")
+            logger.error(f"Error saving posts for social_page {social_page_id}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             db.session.rollback()
             return 0
     
     @staticmethod
-    def fetch_influencer_recent_posts(influencer_id, days=7, limit=None):
+    def fetch_social_page_recent_posts(social_page_id, days=7, limit=None):
         """
-        Fetch recent posts for an influencer from the database.
+        Fetch recent posts for an social_page from the database.
         
         Args:
-            influencer_id (int): The ID of the influencer
+            social_page_id (int): The ID of the social_page
             days (int): Number of days to look back (default: 7)
             limit (int, optional): Maximum number of posts to return
             
@@ -1300,9 +1300,9 @@ class SocialMediaService:
             # Get posts from the last N days
             start_date = datetime.utcnow() - timedelta(days=days)
             
-            # Query posts for this influencer in the date range
+            # Query posts for this social_page in the date range
             query = SocialPost.query.filter(
-                SocialPost.influencer_id == influencer_id,
+                SocialPost.social_page_id == social_page_id,
                 SocialPost.posted_at >= start_date
             ).order_by(SocialPost.posted_at.desc())
             
@@ -1311,17 +1311,17 @@ class SocialMediaService:
                 query = query.limit(limit)
                 
             posts = query.all()
-            logger.info(f"Fetched {len(posts)} recent posts for influencer {influencer_id}")
+            logger.info(f"Fetched {len(posts)} recent posts for social_page {social_page_id}")
             return posts
             
         except Exception as e:
-            logger.error(f"Error fetching recent posts for influencer {influencer_id}: {str(e)}")
+            logger.error(f"Error fetching recent posts for social_page {social_page_id}: {str(e)}")
             return []
             
     @staticmethod
-    def fetch_influencer_posts_by_platform(platform, days=7, limit=None):
+    def fetch_social_page_posts_by_platform(platform, days=7, limit=None):
         """
-        Fetch recent posts for all influencers of a specific platform.
+        Fetch recent posts for all social_pages of a specific platform.
         
         Args:
             platform (str): Social media platform (instagram, tiktok, facebook)

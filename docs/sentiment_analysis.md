@@ -78,7 +78,7 @@ O módulo de análise de sentimentos permite analisar os comentários de posts e
 
 ### Análise de Influenciador
 
-- **Endpoint**: `/api/analytics/sentiment/influencer/{influencer_id}/sentiment`
+- **Endpoint**: `/api/analytics/sentiment/social-page/{social_page_id}/sentiment`
 - **Método**: GET
 - **Parâmetros da Query**:
   - `time_range`: Período em dias para análise (padrão: 30)
