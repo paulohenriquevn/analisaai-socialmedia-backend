@@ -20,6 +20,19 @@ from app.models import SocialPagePostComment, SocialPagePost
 
 logger = logging.getLogger(__name__)
 
+# HuggingFace imports para análise de sentimento avançada
+try:
+    from transformers import pipeline
+    _huggingface_sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model="pierreguillou/bert-base-cased-sentiment-analysis",
+        tokenizer="pierreguillou/bert-base-cased-sentiment-analysis"
+    )
+    logger.info("HuggingFace sentiment pipeline loaded successfully.")
+except Exception as e:
+    _huggingface_sentiment_pipeline = None
+    logger.warning(f"HuggingFace sentiment pipeline not available: {str(e)}")
+
 class SentimentService:
     """Service for sentiment analysis of text content."""
     
@@ -183,7 +196,7 @@ class SentimentService:
     @staticmethod
     def analyze_sentiment(text):
         """
-        Analyze sentiment of text content.
+        Analyze sentiment of text content using a HuggingFace model (PT-BR) if available, with fallback para método lexicográfico.
         
         Args:
             text: Text to analyze
@@ -198,16 +211,36 @@ class SentimentService:
                     'score': 0.0,
                     'is_critical': False
                 }
-            
-            # Preprocess the text
+            # Tenta usar o modelo HuggingFace (PT-BR)
+            if _huggingface_sentiment_pipeline is not None:
+                try:
+                    result = _huggingface_sentiment_pipeline(text[:512])[0]  # Limite de tokens
+                    label = result['label'].lower()
+                    score = float(result['score'])
+                    # Normaliza para padrão da aplicação
+                    if 'pos' in label:
+                        sentiment = 'positive'
+                        final_score = min(1.0, max(0.0, score))
+                    elif 'neg' in label:
+                        sentiment = 'negative'
+                        final_score = -min(1.0, max(0.0, score))
+                    else:
+                        sentiment = 'neutral'
+                        final_score = 0.0
+                    # Heurística para comentário crítico
+                    is_critical = sentiment == 'negative' and abs(final_score) > 0.5
+                    return {
+                        'sentiment': sentiment,
+                        'score': round(final_score, 2),
+                        'is_critical': is_critical
+                    }
+                except Exception as e:
+                    logger.warning(f"Erro no modelo HuggingFace, fallback para método antigo: {str(e)}")
+            # Fallback: método antigo
             processed = SentimentService.preprocess_text(text)
             processed_text = processed['processed_text']
             emojis = processed['emojis']
-            
-            # This is where we'd normally call our trained model
-            # For now we'll use a rule-based approach with a lexicon
-            
-            # Lexicons of words with sentiment scores
+            # Lexicons de palavras
             positive_words = {
                 'bom': 0.5, 'ótimo': 0.7, 'excelente': 0.8, 'maravilhoso': 0.9, 'perfeito': 0.9,
                 'legal': 0.5, 'bacana': 0.5, 'incrível': 0.8, 'fantástico': 0.8, 'sensacional': 0.8,
@@ -220,7 +253,6 @@ class SentimentService:
                 'vitória': 0.6, 'ganhar': 0.5, 'vencer': 0.5, 'aprovar': 0.4, 'sim': 0.3,
                 'alegria': 0.6, 'felicidade': 0.7, 'amor': 0.7, 'paixão': 0.6, 'entusiasmo': 0.5
             }
-            
             negative_words = {
                 'ruim': -0.5, 'péssimo': -0.7, 'horrível': -0.8, 'terrível': -0.8, 'pior': -0.7,
                 'detestei': -0.8, 'odiei': -0.8, 'decepcionado': -0.6, 'decepção': -0.6, 'triste': -0.5,
@@ -233,12 +265,9 @@ class SentimentService:
                 'lento': -0.3, 'caro': -0.4, 'defeito': -0.5, 'não': -0.2, 'nunca': -0.3,
                 'feio': -0.4, 'sujo': -0.4, 'desagradável': -0.5, 'inútil': -0.6, 'enganar': -0.6
             }
-            
-            # Calculate score based on words
             words = processed_text.split()
             word_score_sum = 0
             word_score_count = 0
-            
             for word in words:
                 if word in positive_words:
                     word_score_sum += positive_words[word]
@@ -246,60 +275,43 @@ class SentimentService:
                 elif word in negative_words:
                     word_score_sum += negative_words[word]
                     word_score_count += 1
-            
-            # Calculate emoji score
             emoji_score_sum = 0
             for emoji_char in emojis:
                 if emoji_char in SentimentService.EMOJI_SENTIMENTS:
                     emoji_score_sum += SentimentService.EMOJI_SENTIMENTS[emoji_char]
-            
-            # Calculate final score
             if word_score_count > 0:
                 base_score = word_score_sum / word_score_count
             else:
                 base_score = 0
-                
-            # Add emoji influence (with a weight)
-            emoji_weight = 0.3  # How much emojis influence the final score
+            emoji_weight = 0.3
             if emojis:
                 emoji_score = emoji_score_sum / len(emojis)
                 final_score = (1 - emoji_weight) * base_score + emoji_weight * emoji_score
             else:
                 final_score = base_score
-                
-            # Clamp the score to [-1, 1]
             final_score = max(-1.0, min(1.0, final_score))
-            
-            # Determine sentiment classification
             if final_score > 0.1:
                 sentiment = 'positive'
             elif final_score < -0.1:
                 sentiment = 'negative'
             else:
                 sentiment = 'neutral'
-                
-            # Check if it's a critical comment
-            is_critical = final_score < -0.5  # Strong negative sentiment
-            
-            # Add extra checks for critical comments
+            is_critical = final_score < -0.5
             critical_phrases = [
                 'não funciona', 'não gostei', 'problema', 'erro', 'bug', 'travando',
                 'cancelar', 'cancelei', 'decepção total', 'péssimo', 'horrível',
                 'pior', 'nunca mais', 'desinstalar'
             ]
-            
             if not is_critical:
                 for phrase in critical_phrases:
                     if phrase in processed_text:
                         is_critical = True
                         break
-            
             return {
                 'sentiment': sentiment,
                 'score': round(final_score, 2),
                 'is_critical': is_critical
             }
-            
         except Exception as e:
             logger.error(f"Error analyzing sentiment: {str(e)}")
             return {
