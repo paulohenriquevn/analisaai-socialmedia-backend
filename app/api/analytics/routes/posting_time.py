@@ -105,7 +105,7 @@ def get_content_type_performance():
         
         # Validate and serialize response
         response_schema = ContentTypeAnalysisResponseSchema()
-        return jsonify(response_schema.dump(result))
+        return jsonify(result)
         
     except ValidationError as e:
         return jsonify({"error": str(e)}), 400

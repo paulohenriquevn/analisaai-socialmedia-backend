@@ -20,13 +20,10 @@ def get_influencers():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     platform = request.args.get('platform')
+    user_id = int(get_jwt_identity())
     
     # Build query
-    query = Influencer.query
-    
-    # Apply filters
-    if platform:
-        query = query.filter_by(platform=platform)
+    query = Influencer.query.filter_by(user_id=user_id)
     
     # Get paginated results
     total = query.count()

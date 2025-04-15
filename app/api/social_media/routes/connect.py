@@ -79,6 +79,7 @@ def connect_social_media():
             "username": clean_username,
             "full_name": clean_username,  # Default to username
             "platform": platform,
+            "user_id": user_id,
             "profile_url": f"https://{platform}.com/{clean_username}",
             "followers_count": 0,
             "following_count": 0,
