@@ -34,8 +34,17 @@ def get_engine_url():
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+from app.extensions import db
+
+# Import models explicitamente para garantir que todas as tabelas estejam no MetaData
+def import_all_models():
+    from common.user import User, Role, organization_users
+    from common.organization import Organization,Plan,PlanFeature
+    from common.recommendations import CalendarPost,OptimizationTip,Trend,ContentIdea,SavedContentIdea
+    from common.social_media import SocialPage,SocialPageMetric,SocialPageEngagement,SocialPageGrowth,SocialPageReach,SocialPageScore,SocialPagePost,SocialPagePostComment,SocialPageCategory,social_page_categories
+import_all_models()
+
+target_metadata = db.metadata
 config.set_main_option('sqlalchemy.url', get_engine_url())
 target_db = current_app.extensions['migrate'].db
 
