@@ -17,6 +17,8 @@ bp.register_blueprint(tasks_bp)
 from app.api.social_media.routes import connect
 from app.api.social_media.routes import sync
 from app.api.social_media.routes import update_influencer
+from app.api.social_media.routes import bp as routes_bp
+bp.register_blueprint(routes_bp)
 
 # Add a test endpoint directly on the main blueprint
 @bp.route('/test', methods=['GET'])

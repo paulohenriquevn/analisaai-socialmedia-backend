@@ -10,7 +10,7 @@ from app.models import SocialPage, SocialPageCategory, SocialPageMetric
 from app.api.social_media import bp
 from app.services.engagement_service import EngagementService
 from app.services.social_media_service import SocialMediaService
-from app.services.apify_service import ApifyService
+
 
 logger = logging.getLogger(__name__)
 

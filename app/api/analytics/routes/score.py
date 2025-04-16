@@ -14,6 +14,55 @@ bp = Blueprint('score', __name__)
 
 logger = logging.getLogger(__name__)
 
+@bp.route('/social/score', methods=['GET'])
+@jwt_required()
+def get_social_score():
+    """
+    Retorna pontuação social do usuário no formato padronizado.
+    Parâmetros de query:
+      - period (string, opcional)
+      - profileId (número, opcional)
+    """
+    period = request.args.get('period')
+    profile_id = request.args.get('profileId', type=int)
+    if not profile_id:
+        return jsonify({"status": "error", "message": "profileId é obrigatório"}), 400
+
+    # Obter usuário autenticado
+    current_user_id = get_jwt_identity()
+    # Verifica se o social_page existe e pertence ao usuário
+    social_page = SocialPage.query.filter_by(id=profile_id, user_id=current_user_id).first()
+    if not social_page:
+        return jsonify({"status": "error", "message": f"Social page com ID {profile_id} não encontrada ou sem permissão"}), 404
+
+    # Determinar datas a partir do period (ex: "30d")
+    start_date = None
+    end_date = None
+    if period:
+        try:
+            if period.endswith('d'):
+                days = int(period[:-1])
+                end_date = datetime.now().date()
+                start_date = end_date - timedelta(days=days)
+        except Exception:
+            return jsonify({"status": "error", "message": "Formato de period inválido. Use, por exemplo, '30d'"}), 400
+
+    metrics = ScoreService.get_score_metrics(profile_id, start_date, end_date)
+    if not metrics or len(metrics) == 0:
+        return jsonify({"status": "error", "message": "Nenhum score encontrado para o perfil informado."}), 404
+
+    # Pega o score mais recente
+    metric = metrics[0]
+    response = {
+        "overall": metric.overall_score,
+        "engagement": metric.engagement_score,
+        "reach": metric.reach_score,
+        "growth": metric.growth_score,
+        "consistency": metric.consistency_score,
+        "quality": metric.audience_quality_score
+    }
+    return jsonify(response)
+
 @bp.route('/metrics/<int:social_page_id>', methods=['GET'])
 @jwt_required()
 def get_score_metrics(social_page_id):

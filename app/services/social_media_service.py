@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from app.extensions import db
 from app.models import SocialPage, SocialPageMetric, SocialPageCategory
 from app.services.oauth_service import get_token
-from app.services.apify_service import ApifyService
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +44,8 @@ class SocialMediaService:
         except Exception as e:
             logger.warning(f"Error using official Instagram API: {str(e)}")
         
-        # Fallback to Apify service if username is provided
-        if username:
-            try:
-                logger.info(f"Attempting to fetch Instagram profile via Apify: {username}")
-                profile_data = ApifyService.fetch_instagram_profile(username)
-                if profile_data and 'error' not in profile_data:
-                    logger.info(f"Successfully fetched Instagram profile via Apify")
-                    return profile_data
-            except Exception as e:
-                logger.warning(f"Error fetching Instagram data via Apify: {str(e)}")
+        # Aqui poderia haver integração com outros serviços, se necessário
+        # Apify removido
         
         # Fallback to scraping public data if available
         try:
@@ -608,16 +600,8 @@ class SocialMediaService:
         except Exception as e:
             logger.warning(f"Error using official TikTok API: {str(e)}")
         
-        # Fallback to Apify service if username is provided
-        if username:
-            try:
-                logger.info(f"Attempting to fetch TikTok profile via Apify: {username}")
-                profile_data = ApifyService.fetch_tiktok_profile(username)
-                if profile_data and 'error' not in profile_data:
-                    logger.info(f"Successfully fetched TikTok profile via Apify")
-                    return profile_data
-            except Exception as e:
-                logger.warning(f"Error fetching TikTok data via Apify: {str(e)}")
+        # Aqui poderia haver integração com outros serviços, se necessário
+        # Apify removido
         
         # Fallback to scraping public data if available
         try:
@@ -854,13 +838,8 @@ class SocialMediaService:
         # Use Apify service if username is provided
         if username:
             try:
-                logger.info(f"Attempting to fetch Facebook profile via Apify: {username}")
-                profile_data = ApifyService.fetch_facebook_profile(username)
-                if profile_data and 'error' not in profile_data:
-                    logger.info(f"Successfully fetched Facebook profile via Apify")
-                    return profile_data
-            except Exception as e:
-                logger.warning(f"Error fetching Facebook data via Apify: {str(e)}")
+                # Aqui poderia haver integração com outros serviços, se necessário
+            pass
         
         # If we couldn't fetch the profile, return None
         logger.error(f"All methods to fetch Facebook profile failed")
