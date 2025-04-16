@@ -13,7 +13,8 @@ from app.models.social_media import (
     SocialPageScore,
     SocialPagePost,
     SocialPagePostComment,
-    SocialPageCategory
+    SocialPageCategory,
+    OptimizationTip
 )
 
 # For convenience, create a list of all models that can be used with db.create_all()
@@ -29,5 +30,6 @@ __all__ = [
     "SocialPageScore",
     "SocialPagePost",
     "SocialPagePostComment",
-    "SocialPageCategory"
+    "SocialPageCategory",
+    "OptimizationTip"
 ]

@@ -20,6 +20,7 @@ def init_app(app):
     from app.api.analytics import growth_bp
     from app.api.analytics import score_bp
     from app.api.search import bp as search_bp
+    from app.api.dashboard import bp as dashboard_bp
     from app.api.social_media import bp as social_media_bp
     from app.api.analytics import visualization_bp
     
@@ -38,6 +39,7 @@ def init_app(app):
     api.register_blueprint(search_bp, url_prefix='/search')
     api.register_blueprint(social_page_bp, url_prefix='/social-page')
     api.register_blueprint(social_media_bp, url_prefix='/social-media')
+    api.register_blueprint(dashboard_bp)  # Dashboard endpoints
     
     # Register main API blueprint
     app.register_blueprint(api)

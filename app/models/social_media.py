@@ -294,3 +294,17 @@ Index('idx_social_token_user_platform', SocialToken.user_id, SocialToken.platfor
 Index('idx_social_page_user_platform', SocialPage.user_id, SocialPage.platform)
 Index('idx_social_page_metrics_date', SocialPageMetric.social_page_id, SocialPageMetric.date)
 Index('idx_social_page_post_page_date', SocialPagePost.social_page_id, SocialPagePost.posted_at)
+
+
+class OptimizationTip(db.Model):
+    __tablename__ = 'optimization_tip'
+    id = db.Column(db.Integer, primary_key=True)
+    social_page_id = db.Column(db.Integer, db.ForeignKey('social_page.id', ondelete='CASCADE'), index=True, nullable=False)
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    implementation_status = db.Column(db.String(20), default='pending', nullable=False)  # 'pending' ou 'implemented'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<OptimizationTip {self.title} ({self.implementation_status})>'
