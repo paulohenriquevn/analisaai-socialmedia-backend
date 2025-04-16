@@ -83,8 +83,8 @@ cd analisaai-socialmedia-backend
 
 2. Create a virtual environment
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate
 ```
 
 3. Install dependencies
@@ -101,18 +101,18 @@ cp .env.example .env
 5. Set up the database
 ```bash
 # Create PostgreSQL database
-python setup_db.py
+python3 setup_db.py
 # OR manually: createdb analisaai
 
 # Initialize the database with tables and initial data
-python init_db.py
+python3 init_db.py
 ```
 
 ### Running the Application
 
 Start the development server:
 ```bash
-python run.py
+python3 run.py
 ```
 
 The API will be available at http://localhost:5000

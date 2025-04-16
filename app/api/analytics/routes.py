@@ -185,9 +185,10 @@ def get_content_performance():
 @jwt_required()
 def get_best_times():
     user_id = int(get_jwt_identity())
-    
+    logger.info(f"[get_best_times] User {user_id} requested best times analytics")
     user = User.query.get(user_id)
     if not user:
+        logger.warning(f"[get_best_times] User {user_id} not found")
         return jsonify({"error": "User not found"}), 404
     
     data = request.json

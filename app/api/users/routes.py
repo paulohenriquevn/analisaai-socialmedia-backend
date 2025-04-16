@@ -46,15 +46,19 @@ def get_me():
 @bp.route('/me', methods=['PUT'])
 def put_me():
     user_id = int(get_jwt_identity())
+    logger.info(f"[put_me] User {user_id} requested profile update")
     user = User.query.get(user_id)
     if not user:
+        logger.warning(f"[put_me] User {user_id} not found")
         return jsonify({"error": "User not found"}), 404
     
-    data = request.json
-    
-    if 'name' in data:
-        user.name = data['name']
-    
+    from app.schemas.user import UpdateUserSchema
+    data = request.json or {}
+    errors = UpdateUserSchema().validate(data)
+    if errors:
+        logger.warning(f"[put_me] Validation error for user {user_id}: {errors}")
+        return jsonify({"error": "Validation error", "messages": errors}), 400
+    user.name = data['name']
     db.session.commit()
     
     return jsonify({
@@ -79,10 +83,12 @@ def put_me_password():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    data = request.json
-    
-    if 'password' in data:
-        user.set_password(data['password'])
+    from app.schemas.user import UpdatePasswordSchema
+    data = request.json or {}
+    errors = UpdatePasswordSchema().validate(data)
+    if errors:
+        return jsonify({"error": "Validation error", "messages": errors}), 400
+    user.set_password(data['password'])
     
     db.session.commit()
     
@@ -108,11 +114,12 @@ def put_me_complete_onboarding():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    data = request.json
-    
-    if 'name' in data:
-        user.name = data['name']
-    
+    from app.schemas.user import UpdateUserSchema
+    data = request.json or {}
+    errors = UpdateUserSchema().validate(data)
+    if errors:
+        return jsonify({"error": "Validation error", "messages": errors}), 400
+    user.name = data['name']
     user.onboarding_completed = True
     db.session.commit()
     

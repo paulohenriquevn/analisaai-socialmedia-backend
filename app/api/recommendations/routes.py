@@ -10,11 +10,20 @@ logger = logging.getLogger(__name__)
 @bp.route('/content-ideas', methods=['GET'])
 @jwt_required()
 def get_content_ideas():
+    from flask import request
     from common.recommendations import ContentIdea, SavedContentIdea
     user_id = int(get_jwt_identity())
-    ideas = ContentIdea.query.all()
-    saved_ids = {s.idea_id for s in SavedContentIdea.query.filter_by(user_id=user_id).all()}
-    data = []
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 10, type=int), 50)
+    logger.info(f"[get_content_ideas] User {user_id} requested content ideas page={page} per_page={per_page}")
+    try:
+        ideas_pagination = ContentIdea.query.order_by(ContentIdea.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        ideas = ideas_pagination.items
+        saved_ids = {s.idea_id for s in SavedContentIdea.query.filter_by(user_id=user_id).all()}
+        data = []
+    except Exception as e:
+        logger.error(f"[get_content_ideas] Error for user {user_id}: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
     for idea in ideas:
         data.append({
             "id": idea.id,
@@ -27,7 +36,17 @@ def get_content_ideas():
             "createdAt": idea.created_at.isoformat() if idea.created_at else None,
             "isSaved": idea.id in saved_ids
         })
-    return jsonify({"success": True, "message": "Content ideas retrieved successfully", "data": data}), 200
+    return jsonify({
+        "success": True,
+        "message": "Content ideas retrieved successfully",
+        "data": data,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": ideas_pagination.total,
+            "total_pages": ideas_pagination.pages
+        }
+    }), 200
 
 
 @bp.route('/content-ideas/save', methods=['POST'])
@@ -35,11 +54,13 @@ def get_content_ideas():
 def save_content_idea():
     from common.recommendations import SavedContentIdea
     from app.extensions import db
+    from app.schemas.recommendation import SaveContentIdeaSchema
     user_id = int(get_jwt_identity())
-    data = request.json
+    data = request.json or {}
+    errors = SaveContentIdeaSchema().validate(data)
+    if errors:
+        return jsonify({"error": "Validation error", "messages": errors}), 400
     idea_id = data.get('ideaId')
-    if not idea_id:
-        return jsonify({"error": "Missing ideaId"}), 400
     exists = SavedContentIdea.query.filter_by(user_id=user_id, idea_id=idea_id).first()
     if not exists:
         saved = SavedContentIdea(user_id=user_id, idea_id=idea_id)
@@ -55,12 +76,22 @@ def save_content_idea():
 @bp.route('/content-ideas/saved', methods=['GET'])
 @jwt_required()
 def get_saved_content_ideas():
+    from flask import request
     from common.recommendations import ContentIdea, SavedContentIdea
     user_id = int(get_jwt_identity())
-    saved = SavedContentIdea.query.filter_by(user_id=user_id).all()
-    idea_ids = [s.idea_id for s in saved]
-    ideas = ContentIdea.query.filter(ContentIdea.id.in_(idea_ids)).all() if idea_ids else []
-    data = []
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 10, type=int), 50)
+    logger.info(f"[get_saved_content_ideas] User {user_id} requested saved content ideas page={page} per_page={per_page}")
+    try:
+        saved = SavedContentIdea.query.filter_by(user_id=user_id)
+        idea_ids = [s.idea_id for s in saved]
+        query = ContentIdea.query.filter(ContentIdea.id.in_(idea_ids)) if idea_ids else ContentIdea.query.filter(False)
+        ideas_pagination = query.order_by(ContentIdea.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        ideas = ideas_pagination.items
+        data = []
+    except Exception as e:
+        logger.error(f"[get_saved_content_ideas] Error for user {user_id}: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
     for idea in ideas:
         data.append({
             "id": idea.id,
@@ -73,16 +104,35 @@ def get_saved_content_ideas():
             "createdAt": idea.created_at.isoformat() if idea.created_at else None,
             "isSaved": True
         })
-    return jsonify({"success": True, "message": "Saved content ideas retrieved successfully", "data": data}), 200
+    return jsonify({
+        "success": True,
+        "message": "Saved content ideas retrieved successfully",
+        "data": data,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": ideas_pagination.total,
+            "total_pages": ideas_pagination.pages
+        }
+    }), 200
 
 
 @bp.route('/calendar', methods=['GET'])
 @jwt_required()
 def get_calendar():
+    from flask import request
     from common.recommendations import CalendarPost
     user_id = int(get_jwt_identity())
-    posts = CalendarPost.query.filter_by(user_id=user_id).order_by(CalendarPost.date).all()
-    data = []
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 10, type=int), 50)
+    logger.info(f"[get_calendar] User {user_id} requested calendar page={page} per_page={per_page}")
+    try:
+        posts_pagination = CalendarPost.query.filter_by(user_id=user_id).order_by(CalendarPost.date).paginate(page=page, per_page=per_page, error_out=False)
+        posts = posts_pagination.items
+        data = []
+    except Exception as e:
+        logger.error(f"[get_calendar] Error for user {user_id}: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
     for post in posts:
         data.append({
             "id": post.id,
@@ -92,7 +142,17 @@ def get_calendar():
             "contentType": post.content_type,
             "status": post.status
         })
-    return jsonify({"success": True, "message": "Calendar retrieved successfully", "data": data}), 200
+    return jsonify({
+        "success": True,
+        "message": "Calendar retrieved successfully",
+        "data": data,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": posts_pagination.total,
+            "total_pages": posts_pagination.pages
+        }
+    }), 200
 
 @bp.route('/optimization', methods=['GET'])
 @jwt_required()
@@ -118,13 +178,22 @@ def get_optimization():
 @bp.route('/trends', methods=['GET'])
 @jwt_required()
 def get_trends():
+    from flask import request
     from common.recommendations import Trend
-    platform = flask.request.args.get('platform')
+    platform = request.args.get('platform')
     query = Trend.query
     if platform:
         query = query.filter(Trend.platforms.contains(platform))
-    trends = query.order_by(Trend.popularity.desc(), Trend.created_at.desc()).all()
-    data = []
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 10, type=int), 50)
+    logger.info(f"[get_trends] Trends requested page={page} per_page={per_page} platform={platform}")
+    try:
+        trends_pagination = query.order_by(Trend.popularity.desc(), Trend.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        trends = trends_pagination.items
+        data = []
+    except Exception as e:
+        logger.error(f"[get_trends] Error: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
     for trend in trends:
         data.append({
             "id": trend.id,
@@ -136,4 +205,14 @@ def get_trends():
             "relatedTopics": trend.related_topics.split(',') if trend.related_topics else [],
             "createdAt": trend.created_at.isoformat() if trend.created_at else None
         })
-    return jsonify({"success": True, "message": "Trends retrieved successfully", "data": data}), 200
+    return jsonify({
+        "success": True,
+        "message": "Trends retrieved successfully",
+        "data": data,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": trends_pagination.total,
+            "total_pages": trends_pagination.pages
+        }
+    }), 200

@@ -2,11 +2,10 @@ import logging
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request
-from common.user import User
 from common.social_media import SocialPage
 from app.extensions import db
 
-bp = Blueprint('social-accounts', __name__)
+bp = Blueprint('social_accounts', __name__)
 logger = logging.getLogger(__name__)
 
 
@@ -41,10 +40,12 @@ def get_social_accounts():
 @jwt_required()
 def post_social_accounts():
     user_id = int(get_jwt_identity())
+    logger.info(f"[post_social_accounts] User {user_id} requested to create social account")
     data = request.json or {}
     required_fields = ["platform", "username"]
     for field in required_fields:
         if field not in data:
+            logger.warning(f"[post_social_accounts] Missing field {field} for user {user_id}")
             return jsonify({"error": f"Missing field: {field}"}), 400
     page = SocialPage(
         user_id=user_id,

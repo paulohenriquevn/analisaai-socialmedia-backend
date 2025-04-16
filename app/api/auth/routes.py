@@ -26,10 +26,11 @@ def get_limiter():
 @bp.route('/register', methods=['POST'])
 @get_limiter().limit("3 per minute")
 def register():
-    data = request.json
-    
-    if not all(k in data for k in ('username', 'email', 'password')):
-        return jsonify({"error": "Missing required fields"}), 400
+    from app.schemas.auth import RegisterSchema
+    data = request.json or {}
+    errors = RegisterSchema().validate(data)
+    if errors:
+        return jsonify({"error": "Validation error", "messages": errors}), 400
     
     if User.query.filter_by(username=data['username']).first():
         return jsonify({"error": "Username already exists"}), 409
@@ -69,10 +70,11 @@ def register():
 @bp.route('/login', methods=['POST'])
 @get_limiter().limit("5 per minute")
 def login():
-    data = request.json
-    
-    if not all(k in data for k in ('email', 'password')):
-        return jsonify({"error": "Missing email or password"}), 400
+    from app.schemas.auth import LoginSchema
+    data = request.json or {}
+    errors = LoginSchema().validate(data)
+    if errors:
+        return jsonify({"error": "Validation error", "messages": errors}), 400
     
     user = User.query.filter_by(email=data['email']).first()
     

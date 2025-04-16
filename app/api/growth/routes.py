@@ -13,13 +13,18 @@ def post_growth_goals():
     from common.social_media import SocialPageGrowth
     from app.extensions import db
     user_id = int(get_jwt_identity())
+    logger.info(f"[post_growth_goals] User {user_id} requested to create growth goals")
+    from app.schemas.growth import GrowthGoalSchema
     data = request.json
     if not isinstance(data, list):
+        logger.warning(f"[post_growth_goals] Invalid data type for user {user_id}")
         return jsonify({"error": "Expected a list of growth goals"}), 400
     created_goals = []
     for goal in data:
-        if not all(k in goal for k in ("platform", "followersGoal")):
-            return jsonify({"error": "Missing required fields in one or more goals"}), 400
+        errors = GrowthGoalSchema().validate(goal)
+        if errors:
+            logger.warning(f"[post_growth_goals] Validation error for user {user_id}: {errors}")
+            return jsonify({"error": "Validation error", "messages": errors}), 400
         new_goal = SocialPageGrowth(
             user_id=user_id,
             platform=goal["platform"],

@@ -11,12 +11,18 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def post_business_info():
     user_id = int(get_jwt_identity())
+    logger.info(f"[post_business_info] User {user_id} requested business info update")
     user = User.query.get(user_id)
     if not user:
+        logger.warning(f"[post_business_info] User {user_id} not found")
         return jsonify({"error": "User not found"}), 404
     
-    data = request.json
-    
+    from app.schemas.business_info import BusinessInfoSchema
+    data = request.json or {}
+    errors = BusinessInfoSchema().validate(data)
+    if errors:
+        logger.warning(f"[post_business_info] Validation error for user {user_id}: {errors}")
+        return jsonify({"error": "Validation error", "messages": errors}), 400
     if 'name' in data:
         user.name = data['name']
     if 'industry' in data:
@@ -53,10 +59,9 @@ def post_social_accounts():
     from app.extensions import db
     user_id = int(get_jwt_identity())
     data = request.json or {}
-    required_fields = ["platform", "username"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing field: {field}"}), 400
+    errors = SocialAccountSchema().validate(data)
+    if errors:
+        return jsonify({"error": "Validation error", "messages": errors}), 400
     page = SocialPage(
         user_id=user_id,
         platform=data["platform"],
